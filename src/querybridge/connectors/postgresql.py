@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import time
-import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 from querybridge.connectors.base import DatabaseConnector, QueryResult
 from querybridge.core.models import ColumnInfo, Relationship, TableInfo, ValueCount
@@ -35,7 +35,7 @@ class PostgreSQLConnector(DatabaseConnector):
         statement_timeout_ms: int = 10_000,
         pool_size: int = 3,
     ):
-        connect_args: Dict[str, Any] = {}
+        connect_args: dict[str, Any] = {}
         if read_only:
             connect_args["server_settings"] = {
                 "default_transaction_read_only": "on",
@@ -58,7 +58,7 @@ class PostgreSQLConnector(DatabaseConnector):
             connect_args=connect_args,
         )
         self._session_factory = sessionmaker(
-            self._engine, class_=AsyncSession, expire_on_commit=False
+            bind=self._engine, class_=AsyncSession, expire_on_commit=False  # type: ignore[call-overload]
         )
 
     async def execute(self, sql: str, max_rows: int = 500) -> QueryResult:
@@ -96,9 +96,9 @@ class PostgreSQLConnector(DatabaseConnector):
                 execution_time_ms=elapsed_ms,
             )
 
-    async def get_tables(self) -> List[TableInfo]:
+    async def get_tables(self) -> list[TableInfo]:
         result = await self.execute("""
-            SELECT c.relname AS name, 
+            SELECT c.relname AS name,
                    CASE c.relkind
                        WHEN 'r' THEN 'table'
                        WHEN 'v' THEN 'view'
@@ -121,7 +121,7 @@ class PostgreSQLConnector(DatabaseConnector):
             for row in result.rows
         ]
 
-    async def get_columns(self, table: str) -> List[ColumnInfo]:
+    async def get_columns(self, table: str) -> list[ColumnInfo]:
         table = _validate_identifier(table)
         result = await self.execute(f"""
             SELECT a.attname AS name,
@@ -155,7 +155,7 @@ class PostgreSQLConnector(DatabaseConnector):
 
     async def get_distinct_values(
         self, table: str, column: str, limit: int = 25
-    ) -> List[ValueCount]:
+    ) -> list[ValueCount]:
         table = _validate_identifier(table)
         column = _validate_identifier(column)
         limit = min(max(1, int(limit)), 50)
@@ -167,7 +167,7 @@ class PostgreSQLConnector(DatabaseConnector):
         )
         return [ValueCount(value=r["value"], count=r["count"]) for r in result.rows]
 
-    async def get_row_count(self, table: str, where: Optional[str] = None) -> int:
+    async def get_row_count(self, table: str, where: str | None = None) -> int:
         table = _validate_identifier(table)
         sql = f"SELECT COUNT(*) AS cnt FROM {table}"
         if where:
@@ -175,12 +175,12 @@ class PostgreSQLConnector(DatabaseConnector):
         result = await self.execute(sql)
         return result.rows[0]["cnt"] if result.rows else 0
 
-    async def get_sample_rows(self, table: str, limit: int = 3) -> List[Dict[str, Any]]:
+    async def get_sample_rows(self, table: str, limit: int = 3) -> list[dict[str, Any]]:
         table = _validate_identifier(table)
         result = await self.execute(f"SELECT * FROM {table} LIMIT {limit}")
         return result.rows
 
-    async def get_relationships(self) -> List[Relationship]:
+    async def get_relationships(self) -> list[Relationship]:
         result = await self.execute("""
             SELECT
                 kcu.table_name AS from_table,
@@ -221,7 +221,7 @@ class PostgreSQLConnector(DatabaseConnector):
 
     async def explore_jsonb(
         self, table: str, column: str, path: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Explore JSONB structure at any depth."""
         table = _validate_identifier(table)
         column = _validate_identifier(column)
@@ -272,7 +272,7 @@ class PostgreSQLConnector(DatabaseConnector):
 
     async def search_text(
         self, table: str, column: str, term: str, limit: int = 50
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Full-text ILIKE search on a text/jsonb column."""
         table = _validate_identifier(table)
         column = _validate_identifier(column)
@@ -297,8 +297,8 @@ class PostgreSQLConnector(DatabaseConnector):
         }
 
     async def validate_filter_values(
-        self, table: str, column: str, values: List[str]
-    ) -> Dict[str, Any]:
+        self, table: str, column: str, values: list[str]
+    ) -> dict[str, Any]:
         """Check if specific values exist in a column with fuzzy matching."""
         table = _validate_identifier(table)
         column = _validate_identifier(column)
@@ -366,7 +366,7 @@ class PostgreSQLConnector(DatabaseConnector):
 
     async def cross_validate(
         self, primary_sql: str, check_sql: str, note: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run two queries and compare for consistency."""
         primary = await self.execute(primary_sql, max_rows=50)
         check = await self.execute(check_sql, max_rows=50)

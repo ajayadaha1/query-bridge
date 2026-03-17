@@ -12,7 +12,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/querybridge)](https://pypi.org/project/querybridge/)
 
-[Documentation](https://querybridge.dev) · [Playground Demo](https://querybridge.dev/playground) · [Discord](https://discord.gg/querybridge)
+[Documentation](https://github.com/ajayadaha1/query-bridge/tree/main/docs) · [Playground](https://failsafe.amd.com/query-bridge/) · [Issues](https://github.com/ajayadaha1/query-bridge/issues)
 
 </div>
 

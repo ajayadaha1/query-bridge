@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 
 def build_system_prompt(
     schema_context: str,
@@ -12,7 +10,7 @@ def build_system_prompt(
     discovery_context: str = "",
     memory_context: str = "",
     strategy_context: str = "",
-    few_shot_examples: Optional[List[dict]] = None,
+    few_shot_examples: list[dict] | None = None,
     response_formatting: str = "",
 ) -> str:
     """Build the NL2SQL system prompt with injected context.

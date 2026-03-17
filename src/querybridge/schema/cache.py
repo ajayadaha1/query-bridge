@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING
 
-from querybridge.connectors.base import DatabaseConnector
-from querybridge.core.models import ColumnInfo, Relationship, SchemaInfo, TableInfo, ValueCount
-from querybridge.plugins.base import DomainPlugin
 from querybridge.schema.discoverer import SchemaDiscoverer
 from querybridge.schema.relationship_detector import RelationshipDetector
+
+if TYPE_CHECKING:
+    from querybridge.connectors.base import DatabaseConnector
+    from querybridge.core.models import SchemaInfo
+    from querybridge.plugins.base import DomainPlugin
 
 logger = logging.getLogger("querybridge.schema.cache")
 
@@ -21,14 +23,14 @@ class SchemaCache:
     def __init__(
         self,
         connector: DatabaseConnector,
-        plugin: Optional[DomainPlugin] = None,
+        plugin: DomainPlugin | None = None,
         ttl_seconds: int = 300,
     ):
         self._connector = connector
         self._plugin = plugin
         self._ttl = ttl_seconds
-        self._schema: Optional[SchemaInfo] = None
-        self._schema_text: Optional[str] = None
+        self._schema: SchemaInfo | None = None
+        self._schema_text: str | None = None
         self._cached_at: float = 0
 
     async def get_schema(self, force_refresh: bool = False) -> SchemaInfo:

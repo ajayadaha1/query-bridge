@@ -6,7 +6,7 @@ duplicate queries, and single-value columns.
 
 import hashlib
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -15,13 +15,13 @@ class ValidationNote:
     severity: str      # "warning" | "error" | "info"
     code: str          # "zero_rows" | "suspect_few" | "too_many" | "high_null" | "duplicate" | "single_value"
     message: str
-    suggestions: List[str] = field(default_factory=list)
+    suggestions: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ValidationResult:
     """Aggregated result of all validation checks."""
-    notes: List[ValidationNote] = field(default_factory=list)
+    notes: list[ValidationNote] = field(default_factory=list)
     is_valid: bool = True
     should_retry: bool = False
 
@@ -55,16 +55,16 @@ class ResultValidator:
 
     def __init__(
         self,
-        expected_row_estimate: Optional[int] = None,
-        total_table_rows: Optional[int] = None,
+        expected_row_estimate: int | None = None,
+        total_table_rows: int | None = None,
     ):
-        self.executed_queries: List[str] = []
+        self.executed_queries: list[str] = []
         self.executed_query_hashes: set = set()
         self.expected_row_estimate = expected_row_estimate
         self.total_table_rows = total_table_rows
         self.zero_row_events = 0
 
-    def validate(self, tool_result: Dict[str, Any], sql: str) -> ValidationResult:
+    def validate(self, tool_result: dict[str, Any], sql: str) -> ValidationResult:
         """Run all validation rules against a query result."""
         result = ValidationResult()
 
@@ -95,7 +95,7 @@ class ResultValidator:
         self._track_query(sql)
         return result
 
-    def _check_zero_rows(self, result: Dict[str, Any]) -> Optional[ValidationNote]:
+    def _check_zero_rows(self, result: dict[str, Any]) -> ValidationNote | None:
         if result.get("row_count", 0) == 0:
             return ValidationNote(
                 severity="warning", code="zero_rows",
@@ -108,7 +108,7 @@ class ResultValidator:
             )
         return None
 
-    def _check_row_count(self, result: Dict[str, Any], sql: str = "") -> Optional[ValidationNote]:
+    def _check_row_count(self, result: dict[str, Any], sql: str = "") -> ValidationNote | None:
         row_count = result.get("row_count", 0)
         truncated = result.get("truncated", False)
         if row_count == 0:
@@ -117,7 +117,10 @@ class ResultValidator:
         if self.total_table_rows and truncated and row_count >= self.total_table_rows:
             return ValidationNote(
                 severity="error", code="too_many",
-                message=f"Row count ({row_count}+) exceeds table size ({self.total_table_rows}). Possible JOIN explosion.",
+                message=(
+                    f"Row count ({row_count}+) exceeds table size "
+                    f"({self.total_table_rows}). Possible JOIN explosion."
+                ),
                 suggestions=["Add DISTINCT", "Check JOIN conditions", "Add GROUP BY"],
             )
 
@@ -134,7 +137,7 @@ class ResultValidator:
                 )
         return None
 
-    def _check_null_rate(self, result: Dict[str, Any]) -> Optional[ValidationNote]:
+    def _check_null_rate(self, result: dict[str, Any]) -> ValidationNote | None:
         rows = result.get("rows", [])
         columns = result.get("columns", [])
         row_count = result.get("row_count", 0)
@@ -157,7 +160,7 @@ class ResultValidator:
             )
         return None
 
-    def _check_duplicate(self, sql: str) -> Optional[ValidationNote]:
+    def _check_duplicate(self, sql: str) -> ValidationNote | None:
         h = self._hash_query(sql)
         if h in self.executed_query_hashes:
             return ValidationNote(
@@ -167,7 +170,7 @@ class ResultValidator:
             )
         return None
 
-    def _check_single_value(self, result: Dict[str, Any]) -> Optional[ValidationNote]:
+    def _check_single_value(self, result: dict[str, Any]) -> ValidationNote | None:
         rows = result.get("rows", [])
         columns = result.get("columns", [])
         if result.get("row_count", 0) <= 1 or not columns:
@@ -195,7 +198,7 @@ class ResultValidator:
         self.executed_queries.append(sql)
         self.executed_query_hashes.add(self._hash_query(sql))
 
-    def set_expectations(self, expected: Optional[int] = None, total: Optional[int] = None):
+    def set_expectations(self, expected: int | None = None, total: int | None = None):
         if expected is not None:
             self.expected_row_estimate = expected
         if total is not None:

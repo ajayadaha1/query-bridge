@@ -1,7 +1,7 @@
 """LLM request/response types."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -9,9 +9,9 @@ class ToolCall:
     """A single tool call from the LLM."""
     id: str
     name: str
-    arguments: Dict[str, Any] = field(default_factory=dict)
+    arguments: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type": "function",

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import logging
-from typing import Any, Callable, Coroutine, Dict, List, Optional
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from querybridge.core.models import ToolDefinition
 
@@ -12,15 +12,15 @@ logger = logging.getLogger("querybridge.agent.tools")
 
 
 # Type alias for async tool handler functions
-ToolHandler = Callable[..., Coroutine[Any, Any, Dict[str, Any]]]
+ToolHandler = Callable[..., Coroutine[Any, Any, dict[str, Any]]]
 
 
 class ToolRegistry:
     """Registry of tools available to the LLM agent."""
 
     def __init__(self):
-        self._tools: Dict[str, ToolDefinition] = {}
-        self._handlers: Dict[str, ToolHandler] = {}
+        self._tools: dict[str, ToolDefinition] = {}
+        self._handlers: dict[str, ToolHandler] = {}
 
     def register(self, definition: ToolDefinition, handler: ToolHandler):
         """Register a tool definition and its handler."""
@@ -28,13 +28,13 @@ class ToolRegistry:
         self._handlers[definition.name] = handler
         logger.debug(f"Registered tool: {definition.name}")
 
-    def get_handler(self, name: str) -> Optional[ToolHandler]:
+    def get_handler(self, name: str) -> ToolHandler | None:
         return self._handlers.get(name)
 
-    def get_definitions(self) -> List[ToolDefinition]:
+    def get_definitions(self) -> list[ToolDefinition]:
         return list(self._tools.values())
 
-    def get_openai_tools(self) -> List[Dict[str, Any]]:
+    def get_openai_tools(self) -> list[dict[str, Any]]:
         """Return tool definitions in OpenAI function-calling format."""
         return [
             {
@@ -49,7 +49,7 @@ class ToolRegistry:
         ]
 
     @property
-    def names(self) -> List[str]:
+    def names(self) -> list[str]:
         return list(self._tools.keys())
 
 

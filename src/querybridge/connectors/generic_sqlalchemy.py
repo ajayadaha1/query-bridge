@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import time
-import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text, inspect as sa_inspect
 
 from querybridge.connectors.base import DatabaseConnector, QueryResult
 from querybridge.core.models import ColumnInfo, Relationship, TableInfo, ValueCount
@@ -39,7 +39,7 @@ class GenericSQLAlchemyConnector(DatabaseConnector):
             execution_options={"postgresql_readonly": True} if read_only else {},
         )
         self._session_factory = sessionmaker(
-            self._engine, class_=AsyncSession, expire_on_commit=False
+            bind=self._engine, class_=AsyncSession, expire_on_commit=False  # type: ignore[call-overload]
         )
 
     async def execute(self, sql: str, max_rows: int = 500) -> QueryResult:
@@ -69,7 +69,7 @@ class GenericSQLAlchemyConnector(DatabaseConnector):
                                row_count=len(row_dicts), truncated=truncated,
                                execution_time_ms=elapsed)
 
-    async def get_tables(self) -> List[TableInfo]:
+    async def get_tables(self) -> list[TableInfo]:
         result = await self.execute(
             "SELECT table_name AS name, table_type "
             "FROM information_schema.tables "
@@ -78,7 +78,7 @@ class GenericSQLAlchemyConnector(DatabaseConnector):
         )
         return [TableInfo(name=r["name"], table_type=r["table_type"].lower()) for r in result.rows]
 
-    async def get_columns(self, table: str) -> List[ColumnInfo]:
+    async def get_columns(self, table: str) -> list[ColumnInfo]:
         table = _validate_identifier(table)
         result = await self.execute(
             f"SELECT column_name, data_type, is_nullable "
@@ -92,7 +92,7 @@ class GenericSQLAlchemyConnector(DatabaseConnector):
             for r in result.rows
         ]
 
-    async def get_distinct_values(self, table: str, column: str, limit: int = 25) -> List[ValueCount]:
+    async def get_distinct_values(self, table: str, column: str, limit: int = 25) -> list[ValueCount]:
         table = _validate_identifier(table)
         column = _validate_identifier(column)
         result = await self.execute(
@@ -102,7 +102,7 @@ class GenericSQLAlchemyConnector(DatabaseConnector):
         )
         return [ValueCount(value=r["value"], count=r["count"]) for r in result.rows]
 
-    async def get_row_count(self, table: str, where: Optional[str] = None) -> int:
+    async def get_row_count(self, table: str, where: str | None = None) -> int:
         table = _validate_identifier(table)
         sql = f"SELECT COUNT(*) AS cnt FROM {table}"
         if where:
@@ -110,12 +110,12 @@ class GenericSQLAlchemyConnector(DatabaseConnector):
         result = await self.execute(sql)
         return result.rows[0]["cnt"] if result.rows else 0
 
-    async def get_sample_rows(self, table: str, limit: int = 3) -> List[Dict[str, Any]]:
+    async def get_sample_rows(self, table: str, limit: int = 3) -> list[dict[str, Any]]:
         table = _validate_identifier(table)
         result = await self.execute(f"SELECT * FROM {table} LIMIT {limit}")
         return result.rows
 
-    async def get_relationships(self) -> List[Relationship]:
+    async def get_relationships(self) -> list[Relationship]:
         try:
             result = await self.execute("""
                 SELECT kcu.table_name AS from_table, kcu.column_name AS from_column,

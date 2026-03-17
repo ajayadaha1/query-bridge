@@ -5,21 +5,20 @@ Prevents repetition of failed strategies and suggests escalation paths.
 
 from __future__ import annotations
 
-import re
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+import re
+from dataclasses import dataclass
 
 from querybridge.strategy.column_hierarchy import ColumnHierarchy
 
 logger = logging.getLogger("querybridge.strategy.tracker")
 
 
-def extract_columns_from_sql(sql: str) -> List[str]:
+def extract_columns_from_sql(sql: str) -> list[str]:
     """Extract column names referenced in a SQL query."""
     if not sql:
         return []
-    columns: Set[str] = set()
+    columns: set[str] = set()
     normalized = " ".join(sql.split())
 
     sql_keywords = {
@@ -45,7 +44,7 @@ def extract_columns_from_sql(sql: str) -> List[str]:
     return sorted(columns)
 
 
-def extract_filter_patterns_from_sql(sql: str) -> List[str]:
+def extract_filter_patterns_from_sql(sql: str) -> list[str]:
     """Extract filter patterns from WHERE clause."""
     if not sql:
         return []
@@ -67,12 +66,12 @@ class StrategyEntry:
     """Record of a single investigation approach."""
     iteration: int
     approach: str
-    columns_used: List[str]
-    filter_patterns: List[str]
+    columns_used: list[str]
+    filter_patterns: list[str]
     result_count: int
     success: bool
     notes: str = ""
-    sql: Optional[str] = None
+    sql: str | None = None
 
     def get_status_label(self) -> str:
         if not self.success:
@@ -85,9 +84,9 @@ class StrategyEntry:
 class StrategyTracker:
     """Tracks investigation strategies during the agentic loop."""
 
-    def __init__(self, column_hierarchy: Optional[ColumnHierarchy] = None):
-        self.entries: List[StrategyEntry] = []
-        self._tried_combinations: Set[Tuple[str, str]] = set()
+    def __init__(self, column_hierarchy: ColumnHierarchy | None = None):
+        self.entries: list[StrategyEntry] = []
+        self._tried_combinations: set[tuple[str, str]] = set()
         self._column_hierarchy = column_hierarchy or ColumnHierarchy()
 
     @property
@@ -118,7 +117,7 @@ class StrategyTracker:
 
         return entry
 
-    def get_tried_columns(self) -> List[str]:
+    def get_tried_columns(self) -> list[str]:
         tried = set()
         hier_cols = set(c.lower() for c in self._column_hierarchy.get_all_columns())
         for entry in self.entries:

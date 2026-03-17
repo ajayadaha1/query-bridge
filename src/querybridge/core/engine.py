@@ -3,19 +3,21 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from querybridge.agent.loop import AgentLoop
-from querybridge.connectors.base import DatabaseConnector
 from querybridge.core.config import EngineConfig
 from querybridge.core.models import QueryRequest, QueryResponse
-from querybridge.llm.base import LLMProvider
 from querybridge.memory.store import MemoryStore
-from querybridge.plugins.base import DomainPlugin
 from querybridge.plugins.builtin.generic import GenericPlugin
 from querybridge.plugins.registry import PluginRegistry
 from querybridge.prompts.few_shot import FewShotRegistry
 from querybridge.schema.cache import SchemaCache
+
+if TYPE_CHECKING:
+    from querybridge.connectors.base import DatabaseConnector
+    from querybridge.llm.base import LLMProvider
+    from querybridge.plugins.base import DomainPlugin
 
 logger = logging.getLogger("querybridge.engine")
 
@@ -36,8 +38,8 @@ class QueryBridgeEngine:
         self,
         connector: DatabaseConnector,
         llm: LLMProvider,
-        config: Optional[EngineConfig] = None,
-        plugin: Optional[DomainPlugin] = None,
+        config: EngineConfig | None = None,
+        plugin: DomainPlugin | None = None,
     ):
         self.connector = connector
         self.llm = llm
@@ -45,13 +47,13 @@ class QueryBridgeEngine:
         self.plugin = plugin or GenericPlugin()
         self.schema_cache = SchemaCache(connector, self.plugin)
         self.memory_store = MemoryStore(
-            max_sessions=100, session_ttl=self.config.session_ttl
+            max_sessions=100, ttl_seconds=self.config.session_ttl_seconds
         )
         self.few_shot = FewShotRegistry()
 
         # Register plugin few-shot examples
         for ex in self.plugin.get_few_shot_examples():
-            self.few_shot.add(
+            self.few_shot.add_example(
                 question=ex["question"],
                 sql=ex["sql"],
                 explanation=ex.get("explanation", ""),
@@ -77,8 +79,8 @@ class QueryBridgeEngine:
     async def query(
         self,
         question: str,
-        chat_id: Optional[str] = None,
-        history: Optional[list] = None,
+        chat_id: str | None = None,
+        history: list | None = None,
     ) -> QueryResponse:
         """Execute a natural language query."""
         request = QueryRequest(
@@ -103,13 +105,13 @@ class QueryBridgeEngine:
         cls,
         connector: DatabaseConnector,
         llm: LLMProvider,
-        config_dict: Optional[Dict[str, Any]] = None,
-        plugin_name: Optional[str] = None,
-    ) -> "QueryBridgeEngine":
+        config_dict: dict[str, Any] | None = None,
+        plugin_name: str | None = None,
+    ) -> QueryBridgeEngine:
         """Create an engine from a config dict and optional plugin name."""
         config = EngineConfig(**(config_dict or {}))
 
-        plugin: Optional[DomainPlugin] = None
+        plugin: DomainPlugin | None = None
         if plugin_name:
             registry = PluginRegistry()
             registry.discover_entry_points()

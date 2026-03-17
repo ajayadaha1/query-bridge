@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import Any, Dict, List
+from typing import Any
 
 
-def to_csv(columns: List[str], rows: List[Dict[str, Any]]) -> str:
+def to_csv(columns: list[str], rows: list[dict[str, Any]]) -> str:
     """Convert query results to CSV string."""
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=columns, extrasaction="ignore")
@@ -17,6 +17,6 @@ def to_csv(columns: List[str], rows: List[Dict[str, Any]]) -> str:
     return output.getvalue()
 
 
-def to_csv_bytes(columns: List[str], rows: List[Dict[str, Any]]) -> bytes:
+def to_csv_bytes(columns: list[str], rows: list[dict[str, Any]]) -> bytes:
     """Convert query results to CSV bytes (for streaming responses)."""
     return to_csv(columns, rows).encode("utf-8")

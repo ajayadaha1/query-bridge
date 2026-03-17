@@ -8,11 +8,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
-from querybridge.connectors.base import DatabaseConnector
 from querybridge.discovery.brief import DiscoveryBrief, FilterVerification
 from querybridge.discovery.fuzzy_match import fuzzy_ratio, normalize_value
+
+if TYPE_CHECKING:
+    from querybridge.connectors.base import DatabaseConnector
 
 logger = logging.getLogger("querybridge.discovery.engine")
 
@@ -25,19 +27,19 @@ class DiscoveryEngine:
     def __init__(
         self,
         connector: DatabaseConnector,
-        entity_column_map: Optional[Dict[str, List[str]]] = None,
-        primary_table: Optional[str] = None,
+        entity_column_map: dict[str, list[str]] | None = None,
+        primary_table: str | None = None,
         fuzzy_threshold: float = DEFAULT_FUZZY_THRESHOLD,
     ):
         self._connector = connector
         self._entity_column_map = entity_column_map or {}
         self._primary_table = primary_table
         self._fuzzy_threshold = fuzzy_threshold
-        self._distinct_cache: Dict[str, List[Tuple[str, int]]] = {}
+        self._distinct_cache: dict[str, list[tuple[str, int]]] = {}
 
     async def run_discovery(
         self,
-        entities: List[str],
+        entities: list[str],
     ) -> DiscoveryBrief:
         """Run pre-flight discovery for a list of entities.
 
@@ -61,7 +63,7 @@ class DiscoveryEngine:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in results:
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 logger.warning(f"Discovery failed: {result}")
                 continue
             if result:
@@ -72,7 +74,7 @@ class DiscoveryEngine:
 
         return brief
 
-    def _parse_entities(self, entities: List[str]) -> List[Tuple[str, str]]:
+    def _parse_entities(self, entities: list[str]) -> list[tuple[str, str]]:
         parsed = []
         for entity in entities:
             if ":" in entity:
@@ -83,8 +85,8 @@ class DiscoveryEngine:
         return parsed
 
     async def _verify_entity(
-        self, entity_type: str, entity_value: str, columns: List[str],
-    ) -> Optional[Tuple[FilterVerification, Optional[Dict[str, Any]]]]:
+        self, entity_type: str, entity_value: str, columns: list[str],
+    ) -> tuple[FilterVerification, dict[str, Any] | None] | None:
         """Verify an entity value against candidate columns."""
         all_fuzzy = []
 
@@ -138,7 +140,7 @@ class DiscoveryEngine:
              "suggestion": f"Value '{entity_value}' not found. Check spelling or explore distinct values."},
         )
 
-    async def _get_distinct_cached(self, column: str, limit: int = 50) -> List[Tuple[str, int]]:
+    async def _get_distinct_cached(self, column: str, limit: int = 50) -> list[tuple[str, int]]:
         if column in self._distinct_cache:
             return self._distinct_cache[column]
 

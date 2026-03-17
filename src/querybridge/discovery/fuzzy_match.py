@@ -1,7 +1,7 @@
 """Fuzzy matching utilities."""
 
-from difflib import SequenceMatcher
 import re
+from difflib import SequenceMatcher
 
 
 def fuzzy_ratio(s1: str, s2: str) -> float:

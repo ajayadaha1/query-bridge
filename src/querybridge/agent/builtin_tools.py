@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
-import re
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
-from querybridge.connectors.base import DatabaseConnector
-from querybridge.safety.guard import SQLGuard
+if TYPE_CHECKING:
+    from querybridge.connectors.base import DatabaseConnector
+    from querybridge.safety.guard import SQLGuard
 
 logger = logging.getLogger("querybridge.agent.builtin_tools")
 
@@ -16,7 +16,7 @@ logger = logging.getLogger("querybridge.agent.builtin_tools")
 MAX_RESULT_CHARS = 50_000
 
 
-def _truncate_result(result: Dict[str, Any]) -> Dict[str, Any]:
+def _truncate_result(result: dict[str, Any]) -> dict[str, Any]:
     """Truncate large results to avoid token overflow."""
     result_str = json.dumps(result, default=str)
     if len(result_str) <= MAX_RESULT_CHARS:
@@ -33,10 +33,10 @@ def _truncate_result(result: Dict[str, Any]) -> Dict[str, Any]:
 async def handle_execute_sql(
     connector: DatabaseConnector,
     guard: SQLGuard,
-    args: Dict[str, Any],
-    query_log: List[Dict[str, Any]],
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
     iteration: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Execute a SQL query through the guard and connector."""
     sql = args.get("sql", "")
     reason = args.get("reason", "")
@@ -83,10 +83,10 @@ async def handle_execute_sql(
 
 async def handle_explore_table(
     connector: DatabaseConnector,
-    args: Dict[str, Any],
-    query_log: List[Dict[str, Any]],
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
     iteration: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Explore a table's structure."""
     table_name = args.get("table_name", "")
     try:
@@ -108,10 +108,10 @@ async def handle_explore_table(
 
 async def handle_get_distinct_values(
     connector: DatabaseConnector,
-    args: Dict[str, Any],
-    query_log: List[Dict[str, Any]],
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
     iteration: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get distinct values of a column."""
     table_name = args.get("table_name", "")
     column = args.get("column", "")
@@ -136,10 +136,10 @@ async def handle_get_distinct_values(
 
 async def handle_validate_filter_values(
     connector: DatabaseConnector,
-    args: Dict[str, Any],
-    query_log: List[Dict[str, Any]],
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
     iteration: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Validate filter values exist in a column."""
     table_name = args.get("table_name", "")
     column = args.get("column", "")
@@ -175,10 +175,10 @@ async def handle_validate_filter_values(
 
 async def handle_column_profile(
     connector: DatabaseConnector,
-    args: Dict[str, Any],
-    query_log: List[Dict[str, Any]],
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
     iteration: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get statistical profile of a column."""
     table_name = args.get("table_name", "")
     column = args.get("column", "")
@@ -203,16 +203,16 @@ async def handle_column_profile(
 
 async def handle_count_estimate(
     connector: DatabaseConnector,
-    args: Dict[str, Any],
-    query_log: List[Dict[str, Any]],
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
     iteration: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Quick COUNT(*) with optional conditions."""
     table_name = args.get("table_name", "")
     conditions = args.get("conditions")
 
     # Build a safe COUNT query
-    dialect = connector.get_dialect_name()
+    connector.get_dialect_name()
     # Use parameterized identifier — the guard will catch injection in conditions
     sql = f"SELECT COUNT(*) as count FROM {table_name}"
     if conditions:
@@ -240,10 +240,10 @@ async def handle_count_estimate(
 async def handle_cross_validate(
     connector: DatabaseConnector,
     guard: SQLGuard,
-    args: Dict[str, Any],
-    query_log: List[Dict[str, Any]],
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
     iteration: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run two queries and compare results."""
     primary_sql = args.get("primary_sql", "")
     check_sql = args.get("check_sql", "")

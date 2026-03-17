@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
 
-from querybridge.classifier.patterns import (
-    QUESTION_TYPE_PATTERNS,
-    COMPLEXITY_PATTERNS,
-)
 from querybridge.classifier.entity_extractor import EntityExtractor
+from querybridge.classifier.patterns import (
+    COMPLEXITY_PATTERNS,
+    QUESTION_TYPE_PATTERNS,
+)
 
 
 @dataclass
@@ -18,18 +17,18 @@ class QuestionProfile:
     """Structured metadata extracted from a user question."""
     question_type: str = "drill_down"
     expected_shape: str = "table"
-    implied_entities: List[str] = field(default_factory=list)
-    implied_columns: List[str] = field(default_factory=list)
+    implied_entities: list[str] = field(default_factory=list)
+    implied_columns: list[str] = field(default_factory=list)
     complexity: str = "simple"
     needs_discovery: bool = False
-    phase_budgets: Dict[str, int] = field(default_factory=dict)
+    phase_budgets: dict[str, int] = field(default_factory=dict)
     confidence: float = 0.0
 
     def __post_init__(self):
         if not self.phase_budgets:
             self.phase_budgets = self._default_budgets()
 
-    def _default_budgets(self) -> Dict[str, int]:
+    def _default_budgets(self) -> dict[str, int]:
         if self.complexity == "simple":
             return {"explore": 1, "execute": 3, "validate": 1, "refine": 0}
         elif self.complexity == "moderate":
@@ -47,12 +46,12 @@ class QuestionClassifier:
 
     def __init__(
         self,
-        entity_patterns: Optional[Dict[str, List[str]]] = None,
-        entity_column_map: Optional[Dict[str, List[str]]] = None,
-        extra_question_patterns: Optional[Dict[str, List[str]]] = None,
+        entity_patterns: dict[str, list[str]] | None = None,
+        entity_column_map: dict[str, list[str]] | None = None,
+        extra_question_patterns: dict[str, list[str]] | None = None,
     ):
         # Compile question type patterns
-        self._qtype_compiled: Dict[str, List[re.Pattern]] = {
+        self._qtype_compiled: dict[str, list[re.Pattern]] = {
             qtype: [re.compile(p, re.IGNORECASE) for p in patterns]
             for qtype, patterns in QUESTION_TYPE_PATTERNS.items()
         }
@@ -66,7 +65,7 @@ class QuestionClassifier:
                     self._qtype_compiled[qtype] = compiled
 
         # Compile complexity patterns
-        self._complexity_compiled: Dict[str, List[re.Pattern]] = {
+        self._complexity_compiled: dict[str, list[re.Pattern]] = {
             level: [re.compile(p, re.IGNORECASE) for p in patterns]
             for level, patterns in COMPLEXITY_PATTERNS.items()
         }
@@ -108,8 +107,8 @@ class QuestionClassifier:
             confidence=round(min(confidence + 0.1 * len(entities), 1.0), 2),
         )
 
-    def _classify_type(self, question: str) -> Tuple[str, float]:
-        scores: Dict[str, float] = {}
+    def _classify_type(self, question: str) -> tuple[str, float]:
+        scores: dict[str, float] = {}
         for qtype, patterns in self._qtype_compiled.items():
             score = sum(1.0 for p in patterns if p.search(question))
             scores[qtype] = score
@@ -117,7 +116,7 @@ class QuestionClassifier:
         if not scores or max(scores.values()) == 0:
             return "drill_down", 0.3
 
-        best = max(scores, key=scores.get)
+        best = max(scores, key=lambda k: scores[k])
         total = sum(scores.values())
         conf = scores[best] / total if total > 0 else 0.3
         return best, conf
@@ -134,7 +133,7 @@ class QuestionClassifier:
             return "time_series"
         return base
 
-    def _assess_complexity(self, question: str, entities: List[str]) -> str:
+    def _assess_complexity(self, question: str, entities: list[str]) -> str:
         for pattern in self._complexity_compiled.get("complex", []):
             if pattern.search(question):
                 return "complex"
@@ -145,7 +144,7 @@ class QuestionClassifier:
             return "moderate"
         return "simple"
 
-    def _infer_columns(self, entities: List[str]) -> List[str]:
+    def _infer_columns(self, entities: list[str]) -> list[str]:
         columns = set()
         for entity in entities:
             entity_type = entity.split(":")[0] if ":" in entity else entity
@@ -156,8 +155,8 @@ class QuestionClassifier:
 
 def classify_question(
     question: str,
-    entity_patterns: Optional[Dict[str, List[str]]] = None,
-    entity_column_map: Optional[Dict[str, List[str]]] = None,
+    entity_patterns: dict[str, list[str]] | None = None,
+    entity_column_map: dict[str, list[str]] | None = None,
 ) -> QuestionProfile:
     """Convenience function."""
     return QuestionClassifier(

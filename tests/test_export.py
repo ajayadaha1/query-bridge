@@ -1,6 +1,5 @@
 """Tests for export module."""
 
-import pytest
 from querybridge.export.csv_export import to_csv, to_csv_bytes
 from querybridge.export.json_export import to_json
 

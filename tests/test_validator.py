@@ -1,6 +1,5 @@
 """Tests for ResultValidator."""
 
-import pytest
 from querybridge.safety.validator import ResultValidator
 
 

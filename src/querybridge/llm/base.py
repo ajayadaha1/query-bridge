@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
 class LLMResponse:
     """Response from an LLM chat completion request."""
-    content: Optional[str] = None
-    tool_calls: List[Dict[str, Any]] = field(default_factory=list)
+    content: str | None = None
+    tool_calls: list[dict[str, Any]] = field(default_factory=list)
     finish_reason: str = "stop"
-    usage: Optional[Dict[str, int]] = None
+    usage: dict[str, int] | None = None
 
     @property
     def has_tool_calls(self) -> bool:
@@ -26,9 +26,9 @@ class LLMProvider(ABC):
     @abstractmethod
     async def chat(
         self,
-        messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict[str, Any]]] = None,
-        model: Optional[str] = None,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        model: str | None = None,
         temperature: float = 0.0,
     ) -> LLMResponse:
         """Send a chat completion request with optional tool definitions."""

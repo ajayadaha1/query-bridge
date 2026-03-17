@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
-from querybridge.core.engine import QueryBridgeEngine
+if TYPE_CHECKING:
+    from querybridge.core.engine import QueryBridgeEngine
 
 logger = logging.getLogger("querybridge.server.mcp")
 
@@ -26,7 +27,7 @@ class MCPServer:
     def __init__(self, engine: QueryBridgeEngine):
         self.engine = engine
 
-    def get_tool_definitions(self) -> list[Dict[str, Any]]:
+    def get_tool_definitions(self) -> list[dict[str, Any]]:
         """Return MCP tool definitions."""
         return [
             {
@@ -62,8 +63,8 @@ class MCPServer:
         ]
 
     async def handle_tool_call(
-        self, tool_name: str, arguments: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, tool_name: str, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle an MCP tool call."""
         if tool_name == "querybridge_ask":
             question = arguments.get("question", "")

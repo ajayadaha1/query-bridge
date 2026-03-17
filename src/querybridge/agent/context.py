@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Dict, List
 
 logger = logging.getLogger("querybridge.agent.context")
 
@@ -32,7 +31,7 @@ class ContextWindowManager:
         self.max_context_chars = max_context_chars
         self.keep_recent_results = keep_recent_results
         self.current_estimate = 0
-        self.message_sizes: List[int] = []
+        self.message_sizes: list[int] = []
 
     def estimate_message_size(self, message: dict) -> int:
         size = 0
@@ -60,7 +59,7 @@ class ContextWindowManager:
     def should_compress(self) -> bool:
         return self.current_estimate > self.max_context_chars * 0.7
 
-    def compress_history(self, messages: List[dict]) -> List[dict]:
+    def compress_history(self, messages: list[dict]) -> list[dict]:
         """Replace old tool results with summaries, keeping last N in full."""
         if len(messages) <= 4:
             return messages
@@ -93,7 +92,7 @@ class ContextWindowManager:
         )
         return compressed
 
-    def truncate_to_budget(self, messages: List[dict]) -> List[dict]:
+    def truncate_to_budget(self, messages: list[dict]) -> list[dict]:
         """Hard-truncate messages to fit model context window.
 
         Groups messages into atomic turns (assistant+tool_calls + tool responses)
@@ -109,8 +108,8 @@ class ContextWindowManager:
         )
 
         # Group messages into atomic turns
-        system_turns: List[List[dict]] = []
-        conversation_turns: List[List[dict]] = []
+        system_turns: list[list[dict]] = []
+        conversation_turns: list[list[dict]] = []
         i = 0
         while i < len(messages):
             msg = messages[i]
@@ -141,7 +140,7 @@ class ContextWindowManager:
             if len(last) == 1 and last[0].get("role") == "user":
                 last_user_turn = conversation_turns.pop()
 
-        def turn_size(turn: List[dict]) -> int:
+        def turn_size(turn: list[dict]) -> int:
             return sum(self.estimate_message_size(m) for m in turn)
 
         fixed_chars = sum(turn_size(t) for t in system_turns)
@@ -151,7 +150,7 @@ class ContextWindowManager:
         history_budget = max(self.MAX_HISTORY_CHARS - fixed_chars, 20_000)
 
         # Keep turns from end, drop from start
-        kept_turns: List[List[dict]] = []
+        kept_turns: list[list[dict]] = []
         running_chars = 0
         for turn in reversed(conversation_turns):
             ts = turn_size(turn)
@@ -223,7 +222,7 @@ class ContextWindowManager:
             return content[:200] + "..."
         return content
 
-    def get_phase_summary(self, messages: List[dict], phase_name: str) -> str:
+    def get_phase_summary(self, messages: list[dict], phase_name: str) -> str:
         findings = []
         for msg in messages:
             if msg.get("role") == "tool":
@@ -245,7 +244,7 @@ class ContextWindowManager:
             return f"{phase_name} phase: no significant findings."
         return f"{phase_name} phase findings: " + "; ".join(findings[:5])
 
-    def get_usage_report(self) -> Dict:
+    def get_usage_report(self) -> dict:
         return {
             "estimated_chars": self.current_estimate,
             "estimated_tokens": self.current_estimate // 4,

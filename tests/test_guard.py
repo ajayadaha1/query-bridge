@@ -1,6 +1,5 @@
 """Tests for SQLGuard."""
 
-import pytest
 from querybridge.safety.guard import SQLGuard
 
 

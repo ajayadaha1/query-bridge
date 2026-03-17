@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from querybridge.llm.base import LLMProvider, LLMResponse
 
@@ -28,9 +27,9 @@ class AnthropicProvider(LLMProvider):
 
     async def chat(
         self,
-        messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict[str, Any]]] = None,
-        model: Optional[str] = None,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        model: str | None = None,
         temperature: float = 0.0,
     ) -> LLMResponse:
         # Separate system message from conversation messages
@@ -54,7 +53,7 @@ class AnthropicProvider(LLMProvider):
                     "input_schema": func.get("parameters", {}),
                 })
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "model": model or self._model,
             "messages": conversation,
             "max_tokens": self._max_tokens,

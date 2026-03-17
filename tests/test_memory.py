@@ -1,9 +1,8 @@
 """Tests for memory and context management."""
 
-import pytest
+from querybridge.agent.context import ContextWindowManager
 from querybridge.memory.conversation import ConversationMemory
 from querybridge.memory.store import MemoryStore
-from querybridge.agent.context import ContextWindowManager
 
 
 class TestConversationMemory:

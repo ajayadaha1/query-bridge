@@ -10,7 +10,7 @@ import json
 import logging
 import time
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from querybridge.agent.builtin_tools import (
     handle_column_profile,
@@ -24,14 +24,9 @@ from querybridge.agent.builtin_tools import (
 from querybridge.agent.context import ContextWindowManager
 from querybridge.agent.tools import BUILTIN_TOOLS, ToolRegistry
 from querybridge.classifier.question_classifier import QuestionClassifier
-from querybridge.connectors.base import DatabaseConnector
-from querybridge.core.config import EngineConfig
 from querybridge.core.models import QueryLogEntry, QueryRequest, QueryResponse
 from querybridge.discovery.engine import DiscoveryEngine
-from querybridge.llm.base import LLMProvider
-from querybridge.memory.conversation import ConversationMemory
 from querybridge.memory.store import MemoryStore
-from querybridge.plugins.base import DomainPlugin
 from querybridge.plugins.builtin.generic import GenericPlugin
 from querybridge.prompts.few_shot import FewShotRegistry
 from querybridge.prompts.system import build_system_prompt
@@ -40,12 +35,18 @@ from querybridge.safety.validator import ResultValidator
 from querybridge.schema.cache import SchemaCache
 from querybridge.strategy.tracker import StrategyTracker
 
+if TYPE_CHECKING:
+    from querybridge.connectors.base import DatabaseConnector
+    from querybridge.core.config import EngineConfig
+    from querybridge.llm.base import LLMProvider
+    from querybridge.plugins.base import DomainPlugin
+
 logger = logging.getLogger("querybridge.agent.loop")
 
 MONOLOGUE_MAX_LEN = 4000
 
 
-def _get_phase(iteration: int, phase_budgets: Dict[str, int]) -> str:
+def _get_phase(iteration: int, phase_budgets: dict[str, int]) -> str:
     """Determine current investigation phase from iteration count."""
     explore_end = phase_budgets.get("explore", 2)
     execute_end = explore_end + phase_budgets.get("execute", 5)
@@ -59,7 +60,7 @@ def _get_phase(iteration: int, phase_budgets: Dict[str, int]) -> str:
     return "refine"
 
 
-def _build_phase_guidance(phase: str, iteration: int, phase_budgets: Dict[str, int]) -> str:
+def _build_phase_guidance(phase: str, iteration: int, phase_budgets: dict[str, int]) -> str:
     """Build phase-specific guidance for injection into messages."""
     budget = phase_budgets.get(phase, 3)
 
@@ -113,7 +114,7 @@ def _compute_confidence(
     return max(0.1, min(1.0, round(score, 2)))
 
 
-def _extract_last_sql(query_log: List[Dict[str, Any]]) -> Optional[str]:
+def _extract_last_sql(query_log: list[dict[str, Any]]) -> str | None:
     """Extract the last successful execute_sql query from the log."""
     for entry in reversed(query_log):
         if (
@@ -138,10 +139,10 @@ class AgentLoop:
         connector: DatabaseConnector,
         llm: LLMProvider,
         config: EngineConfig,
-        plugin: Optional[DomainPlugin] = None,
-        schema_cache: Optional[SchemaCache] = None,
-        memory_store: Optional[MemoryStore] = None,
-        few_shot: Optional[FewShotRegistry] = None,
+        plugin: DomainPlugin | None = None,
+        schema_cache: SchemaCache | None = None,
+        memory_store: MemoryStore | None = None,
+        few_shot: FewShotRegistry | None = None,
     ):
         self.connector = connector
         self.llm = llm
@@ -176,9 +177,9 @@ class AgentLoop:
         """Execute the full agentic loop for a query."""
         start_time = time.monotonic()
         chat_id = request.chat_id or str(uuid.uuid4())
-        query_log: List[Dict[str, Any]] = []
-        thinking_steps: List[Dict[str, Any]] = []
-        all_validation_notes: List[str] = []
+        query_log: list[dict[str, Any]] = []
+        thinking_steps: list[dict[str, Any]] = []
+        all_validation_notes: list[str] = []
 
         strategy_tracker = StrategyTracker()
         result_validator = ResultValidator()
@@ -238,7 +239,7 @@ class AgentLoop:
             )
 
             # Build messages
-            messages: List[Dict[str, Any]] = [
+            messages: list[dict[str, Any]] = [
                 {"role": "system", "content": system_prompt}
             ]
             context_manager.track_message(messages[0])
@@ -438,10 +439,10 @@ class AgentLoop:
     async def _dispatch_tool_by_name(
         self,
         tool_name: str,
-        args: Dict[str, Any],
-        query_log: List[Dict[str, Any]],
+        args: dict[str, Any],
+        query_log: list[dict[str, Any]],
         iteration: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Route a tool call to the appropriate handler."""
         if tool_name == "execute_sql":
             return await handle_execute_sql(

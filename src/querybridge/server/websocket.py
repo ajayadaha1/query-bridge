@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import json
+import contextlib
 import logging
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 
-from querybridge.core.engine import QueryBridgeEngine
+if TYPE_CHECKING:
+    from querybridge.core.engine import QueryBridgeEngine
 
 logger = logging.getLogger("querybridge.server.websocket")
 
@@ -24,9 +25,9 @@ async def websocket_handler(websocket: Any, engine: QueryBridgeEngine):
       - {"type": "done", "chat_id": "...", "queries_executed": N, "confidence": 0.95}
     """
     try:
-        from fastapi import WebSocket, WebSocketDisconnect
-    except ImportError:
-        raise ImportError("FastAPI is required for WebSocket mode.")
+        import fastapi  # noqa: F401
+    except ImportError as err:
+        raise ImportError("FastAPI is required for WebSocket mode.") from err
 
     try:
         await websocket.accept()
@@ -80,7 +81,5 @@ async def websocket_handler(websocket: Any, engine: QueryBridgeEngine):
 
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
-        try:
+        with contextlib.suppress(Exception):
             await websocket.close()
-        except Exception:
-            pass

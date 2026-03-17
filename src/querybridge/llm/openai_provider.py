@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from querybridge.llm.base import LLMProvider, LLMResponse
 
@@ -18,12 +18,12 @@ class OpenAIProvider(LLMProvider):
         self,
         api_key: str,
         model: str = "gpt-4o",
-        base_url: Optional[str] = None,
-        organization: Optional[str] = None,
+        base_url: str | None = None,
+        organization: str | None = None,
         default_temperature: float = 0.0,
     ):
         import openai
-        kwargs: Dict[str, Any] = {"api_key": api_key}
+        kwargs: dict[str, Any] = {"api_key": api_key}
         if base_url:
             kwargs["base_url"] = base_url
         if organization:
@@ -34,12 +34,12 @@ class OpenAIProvider(LLMProvider):
 
     async def chat(
         self,
-        messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict[str, Any]]] = None,
-        model: Optional[str] = None,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        model: str | None = None,
         temperature: float = 0.0,
     ) -> LLMResponse:
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "model": model or self._model,
             "messages": messages,
             "temperature": temperature or self._default_temperature,

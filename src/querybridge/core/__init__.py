@@ -1,9 +1,9 @@
 """Shared type aliases for QueryBridge."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # Row from a query result
-Row = Dict[str, Any]
+Row = dict[str, Any]
 
 # Column metadata
 ColumnName = str
@@ -13,4 +13,4 @@ TableName = str
 ToolCallId = str
 
 # JSON-serializable dict
-JsonDict = Dict[str, Any]
+JsonDict = dict[str, Any]

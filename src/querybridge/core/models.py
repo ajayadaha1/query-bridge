@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
 class QueryRequest:
     """A natural language query request."""
     question: str
-    chat_id: Optional[str] = None
-    history: Optional[List[Dict[str, Any]]] = None
+    chat_id: str | None = None
+    history: list[dict[str, Any]] | None = None
 
     def __post_init__(self):
         if self.chat_id is None:
@@ -27,7 +27,7 @@ class QueryLogEntry:
     row_count: int = 0
     execution_time_ms: int = 0
     blocked: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -35,14 +35,14 @@ class QueryResponse:
     """The complete response from QueryBridge."""
     answer: str
     chat_id: str
-    query_log: List[QueryLogEntry] = field(default_factory=list)
-    last_sql: Optional[str] = None
+    query_log: list[QueryLogEntry] = field(default_factory=list)
+    last_sql: str | None = None
     confidence: float = 0.0
-    thinking_steps: List[str] = field(default_factory=list)
+    thinking_steps: list[str] = field(default_factory=list)
     iterations_used: int = 0
     total_time_ms: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "answer": self.answer,
             "chat_id": self.chat_id,
@@ -69,7 +69,7 @@ class TableInfo:
     name: str
     table_type: str = "table"  # table, view, materialized_view
     row_count_estimate: int = 0
-    comment: Optional[str] = None
+    comment: str | None = None
 
 
 @dataclass
@@ -79,8 +79,8 @@ class ColumnInfo:
     data_type: str
     nullable: bool = True
     is_pk: bool = False
-    default: Optional[str] = None
-    comment: Optional[str] = None
+    default: str | None = None
+    comment: str | None = None
 
 
 @dataclass
@@ -105,10 +105,10 @@ class ValueCount:
 @dataclass
 class SchemaInfo:
     """Complete schema discovery result."""
-    tables: List[TableInfo] = field(default_factory=list)
-    columns: Dict[str, List[ColumnInfo]] = field(default_factory=dict)
-    relationships: List[Relationship] = field(default_factory=list)
-    sample_values: Dict[str, List[ValueCount]] = field(default_factory=dict)
+    tables: list[TableInfo] = field(default_factory=list)
+    columns: dict[str, list[ColumnInfo]] = field(default_factory=dict)
+    relationships: list[Relationship] = field(default_factory=list)
+    sample_values: dict[str, list[ValueCount]] = field(default_factory=dict)
 
 
 @dataclass
@@ -116,5 +116,5 @@ class ToolDefinition:
     """Definition of a tool the LLM can call."""
     name: str
     description: str
-    parameters: Dict[str, Any]
+    parameters: dict[str, Any]
     handler: Any = None  # async callable

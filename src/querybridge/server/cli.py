@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import sys
-from typing import Optional
 
 
 def _build_engine(args):
@@ -95,7 +94,7 @@ def cmd_query(args):
                 if response.last_sql:
                     print(f"\n--- SQL ---\n{response.last_sql}")
                 if response.validation_notes:
-                    print(f"\n--- Validation ---")
+                    print("\n--- Validation ---")
                     for note in response.validation_notes:
                         print(f"  • {note}")
                 print(f"\n[{response.queries_executed} queries, "

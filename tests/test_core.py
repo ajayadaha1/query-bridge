@@ -1,8 +1,7 @@
 """Tests for core models and config."""
 
-import pytest
 from querybridge.core.config import EngineConfig
-from querybridge.core.models import QueryRequest, QueryResponse, QueryLogEntry, TableInfo, ColumnInfo
+from querybridge.core.models import ColumnInfo, QueryRequest, QueryResponse, TableInfo
 
 
 class TestEngineConfig:

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING
 
-from querybridge.core.models import ToolDefinition
+if TYPE_CHECKING:
+    from querybridge.core.models import ToolDefinition
 
 
 class DomainPlugin(ABC):
@@ -15,22 +16,22 @@ class DomainPlugin(ABC):
     def get_name(self) -> str:
         """Plugin name (e.g., 'silicon-trace', 'ecommerce', 'finance')."""
 
-    def get_entity_patterns(self) -> Dict[str, List[str]]:
+    def get_entity_patterns(self) -> dict[str, list[str]]:
         """Regex patterns for entity extraction.
         Returns {entity_key: [regex_pattern, ...]}"""
         return {}
 
-    def get_entity_column_map(self) -> Dict[str, List[str]]:
+    def get_entity_column_map(self) -> dict[str, list[str]]:
         """Map entity types to candidate database columns.
         Returns {entity_type: [column_name, ...]}"""
         return {}
 
-    def get_column_annotations(self) -> Dict[str, str]:
+    def get_column_annotations(self) -> dict[str, str]:
         """Human-readable descriptions for columns.
         Returns {column_name: description}"""
         return {}
 
-    def get_column_hierarchy(self) -> List[List[str]]:
+    def get_column_hierarchy(self) -> list[list[str]]:
         """Column escalation paths for strategy tracker.
         Returns [[most_specific, ..., least_specific], ...]"""
         return []
@@ -39,17 +40,17 @@ class DomainPlugin(ABC):
         """Additional domain context injected into the system prompt."""
         return ""
 
-    def get_few_shot_examples(self) -> List[Dict[str, str]]:
+    def get_few_shot_examples(self) -> list[dict[str, str]]:
         """Domain-specific few-shot SQL examples.
         Returns [{question: str, sql: str, explanation: str}, ...]"""
         return []
 
-    def get_question_type_patterns(self) -> Dict[str, List[str]]:
+    def get_question_type_patterns(self) -> dict[str, list[str]]:
         """Additional question type regex patterns.
         Returns {question_type: [regex, ...]}"""
         return {}
 
-    def get_custom_tools(self) -> List[ToolDefinition]:
+    def get_custom_tools(self) -> list[ToolDefinition]:
         """Register domain-specific tools for the agent.
         Returns list of tool definitions the LLM can call."""
         return []
@@ -58,6 +59,6 @@ class DomainPlugin(ABC):
         """Domain-specific response formatting instructions."""
         return ""
 
-    def get_primary_table(self) -> Optional[str]:
+    def get_primary_table(self) -> str | None:
         """Return the name of the primary table for this domain, if any."""
         return None

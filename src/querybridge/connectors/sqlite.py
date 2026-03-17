@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import time
-import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from querybridge.connectors.base import DatabaseConnector, QueryResult
 from querybridge.core.models import ColumnInfo, Relationship, TableInfo, ValueCount
@@ -27,7 +27,7 @@ class SQLiteConnector(DatabaseConnector):
     def __init__(self, database_path: str):
         import aiosqlite  # noqa: F401 — ensure available
         self._path = database_path
-        self._db = None
+        self._db: Any = None
 
     async def _get_db(self):
         if self._db is None:
@@ -52,7 +52,7 @@ class SQLiteConnector(DatabaseConnector):
         return QueryResult(columns=columns, rows=row_dicts, row_count=len(row_dicts),
                            truncated=truncated, execution_time_ms=elapsed)
 
-    async def get_tables(self) -> List[TableInfo]:
+    async def get_tables(self) -> list[TableInfo]:
         result = await self.execute(
             "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') ORDER BY name"
         )
@@ -66,7 +66,7 @@ class SQLiteConnector(DatabaseConnector):
             ))
         return tables
 
-    async def get_columns(self, table: str) -> List[ColumnInfo]:
+    async def get_columns(self, table: str) -> list[ColumnInfo]:
         table = _validate_identifier(table)
         result = await self.execute(f"PRAGMA table_info({table})")
         return [
@@ -77,7 +77,7 @@ class SQLiteConnector(DatabaseConnector):
             for row in result.rows
         ]
 
-    async def get_distinct_values(self, table: str, column: str, limit: int = 25) -> List[ValueCount]:
+    async def get_distinct_values(self, table: str, column: str, limit: int = 25) -> list[ValueCount]:
         table = _validate_identifier(table)
         column = _validate_identifier(column)
         result = await self.execute(
@@ -87,7 +87,7 @@ class SQLiteConnector(DatabaseConnector):
         )
         return [ValueCount(value=r["value"], count=r["count"]) for r in result.rows]
 
-    async def get_row_count(self, table: str, where: Optional[str] = None) -> int:
+    async def get_row_count(self, table: str, where: str | None = None) -> int:
         table = _validate_identifier(table)
         sql = f"SELECT COUNT(*) AS cnt FROM {table}"
         if where:
@@ -95,12 +95,12 @@ class SQLiteConnector(DatabaseConnector):
         result = await self.execute(sql)
         return result.rows[0]["cnt"] if result.rows else 0
 
-    async def get_sample_rows(self, table: str, limit: int = 3) -> List[Dict[str, Any]]:
+    async def get_sample_rows(self, table: str, limit: int = 3) -> list[dict[str, Any]]:
         table = _validate_identifier(table)
         result = await self.execute(f"SELECT * FROM {table} LIMIT {limit}")
         return result.rows
 
-    async def get_relationships(self) -> List[Relationship]:
+    async def get_relationships(self) -> list[Relationship]:
         tables_result = await self.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table'"
         )

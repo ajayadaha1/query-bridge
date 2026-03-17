@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 
 class ColumnHierarchy:
     """Defines escalation paths for column selection.
@@ -12,10 +10,10 @@ class ColumnHierarchy:
     can suggest the next column in the hierarchy.
     """
 
-    def __init__(self, hierarchies: Optional[List[List[str]]] = None):
+    def __init__(self, hierarchies: list[list[str]] | None = None):
         self._hierarchies = hierarchies or []
 
-    def get_next(self, tried_columns: List[str]) -> Optional[str]:
+    def get_next(self, tried_columns: list[str]) -> str | None:
         """Get the next untried column in any hierarchy."""
         tried_set = set(c.lower() for c in tried_columns)
         for hierarchy in self._hierarchies:
@@ -24,7 +22,7 @@ class ColumnHierarchy:
                     return col
         return None
 
-    def get_untried(self, tried_columns: List[str]) -> List[str]:
+    def get_untried(self, tried_columns: list[str]) -> list[str]:
         """Get all untried columns across all hierarchies."""
         tried_set = set(c.lower() for c in tried_columns)
         untried = []
@@ -34,7 +32,7 @@ class ColumnHierarchy:
                     untried.append(col)
         return untried
 
-    def get_all_columns(self) -> List[str]:
+    def get_all_columns(self) -> list[str]:
         """Get all columns in all hierarchies."""
         all_cols = []
         for hierarchy in self._hierarchies:

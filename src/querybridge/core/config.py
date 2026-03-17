@@ -1,7 +1,6 @@
 """Engine configuration."""
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Set
+from dataclasses import dataclass
 
 
 @dataclass
@@ -31,8 +30,8 @@ class EngineConfig:
     fuzzy_match_threshold: float = 0.5
 
     # Safety
-    blocked_keywords: Optional[Set[str]] = None
-    blocked_patterns: Optional[List[str]] = None
+    blocked_keywords: set[str] | None = None
+    blocked_patterns: list[str] | None = None
 
     # LLM
     model: str = "gpt-4o"

@@ -10,7 +10,7 @@
 
 **Do not open a public issue for security vulnerabilities.**
 
-Instead, please email **security@querybridge.dev** with:
+Instead, please email **ajayadaha1@github.com** with:
 
 1. A description of the vulnerability
 2. Steps to reproduce
@@ -28,4 +28,4 @@ QueryBridge includes multiple layers of SQL safety:
 - **Query validation**: Results are validated before being returned
 - **Input sanitization**: User inputs are sanitized before being passed to LLMs
 
-See our [safety documentation](https://querybridge.dev/architecture/safety/) for details.
+See our [safety documentation](https://github.com/ajayadaha1/query-bridge/blob/main/docs/architecture/safety.md) for details.

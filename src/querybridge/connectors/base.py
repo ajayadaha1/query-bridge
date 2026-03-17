@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
-from querybridge.core.models import (
-    ColumnInfo, Relationship, TableInfo, ValueCount,
-)
+if TYPE_CHECKING:
+    from querybridge.core.models import (
+        ColumnInfo,
+        Relationship,
+        TableInfo,
+        ValueCount,
+    )
 
 
 class QueryResult:
@@ -17,8 +21,8 @@ class QueryResult:
 
     def __init__(
         self,
-        columns: List[str],
-        rows: List[Dict[str, Any]],
+        columns: list[str],
+        rows: list[dict[str, Any]],
         row_count: int,
         truncated: bool = False,
         execution_time_ms: int = 0,
@@ -29,7 +33,7 @@ class QueryResult:
         self.truncated = truncated
         self.execution_time_ms = execution_time_ms
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "columns": self.columns,
             "rows": self.rows,
@@ -47,33 +51,33 @@ class DatabaseConnector(ABC):
         """Execute a read-only SQL query and return results."""
 
     @abstractmethod
-    async def get_tables(self) -> List[TableInfo]:
+    async def get_tables(self) -> list[TableInfo]:
         """List all accessible tables/views."""
 
     @abstractmethod
-    async def get_columns(self, table: str) -> List[ColumnInfo]:
+    async def get_columns(self, table: str) -> list[ColumnInfo]:
         """Get column metadata for a table."""
 
     @abstractmethod
     async def get_distinct_values(
         self, table: str, column: str, limit: int = 25
-    ) -> List[ValueCount]:
+    ) -> list[ValueCount]:
         """Get distinct values with counts for a column."""
 
     @abstractmethod
     async def get_row_count(
-        self, table: str, where: Optional[str] = None
+        self, table: str, where: str | None = None
     ) -> int:
         """Get row count, optionally with a WHERE clause."""
 
     @abstractmethod
     async def get_sample_rows(
         self, table: str, limit: int = 3
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get sample rows from a table."""
 
     @abstractmethod
-    async def get_relationships(self) -> List[Relationship]:
+    async def get_relationships(self) -> list[Relationship]:
         """Discover foreign key and inferred relationships."""
 
     @abstractmethod
@@ -86,7 +90,7 @@ class DatabaseConnector(ABC):
 
     # Convenience methods with default implementations
 
-    async def explore_table(self, table: str) -> Dict[str, Any]:
+    async def explore_table(self, table: str) -> dict[str, Any]:
         """Return table overview: columns, types, row count, and sample rows."""
         columns = await self.get_columns(table)
         row_count = await self.get_row_count(table)
@@ -102,8 +106,8 @@ class DatabaseConnector(ABC):
         }
 
     async def column_profile(
-        self, table: str, column: str, where: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, table: str, column: str, where: str | None = None
+    ) -> dict[str, Any]:
         """Get statistical profile of a column."""
         where_sql = f"WHERE {where}" if where else ""
         stats_sql = (

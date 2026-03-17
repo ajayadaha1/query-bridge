@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Dict
-
-from querybridge.memory.conversation import ConversationMemory, DEFAULT_TTL_SECONDS
+from querybridge.memory.conversation import DEFAULT_TTL_SECONDS, ConversationMemory
 
 
 class MemoryStore:
     """In-memory store for conversation memories, keyed by chat_id."""
 
     def __init__(self, ttl_seconds: float = DEFAULT_TTL_SECONDS, max_sessions: int = 100):
-        self._store: Dict[str, ConversationMemory] = {}
+        self._store: dict[str, ConversationMemory] = {}
         self.ttl_seconds = ttl_seconds
         self.max_sessions = max_sessions
 

@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
-
 
 DEFAULT_TTL_SECONDS = 1800
 
@@ -18,12 +16,12 @@ class ConversationMemory:
     last_accessed: float = field(default_factory=time.time)
     ttl_seconds: float = DEFAULT_TTL_SECONDS
 
-    discovered_columns: Dict[str, List[str]] = field(default_factory=dict)
-    verified_filters: Dict[str, int] = field(default_factory=dict)
-    column_null_rates: Dict[str, float] = field(default_factory=dict)
-    successful_patterns: List[Dict[str, str]] = field(default_factory=list)
-    failed_patterns: List[Dict[str, str]] = field(default_factory=list)
-    table_row_count: Optional[int] = None
+    discovered_columns: dict[str, list[str]] = field(default_factory=dict)
+    verified_filters: dict[str, int] = field(default_factory=dict)
+    column_null_rates: dict[str, float] = field(default_factory=dict)
+    successful_patterns: list[dict[str, str]] = field(default_factory=list)
+    failed_patterns: list[dict[str, str]] = field(default_factory=list)
+    table_row_count: int | None = None
 
     def is_expired(self) -> bool:
         return (time.time() - self.last_accessed) > self.ttl_seconds
@@ -31,7 +29,7 @@ class ConversationMemory:
     def touch(self):
         self.last_accessed = time.time()
 
-    def add_discovered_column(self, column: str, values: List[str]):
+    def add_discovered_column(self, column: str, values: list[str]):
         self.discovered_columns[column] = values
         self.touch()
 

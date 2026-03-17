@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING
 
-from querybridge.connectors.base import DatabaseConnector
 from querybridge.core.models import (
-    ColumnInfo, Relationship, SchemaInfo, TableInfo, ValueCount,
+    ColumnInfo,
+    SchemaInfo,
+    ValueCount,
 )
+
+if TYPE_CHECKING:
+    from querybridge.connectors.base import DatabaseConnector
 
 logger = logging.getLogger("querybridge.schema.discoverer")
 
@@ -25,8 +29,8 @@ class SchemaDiscoverer:
         logger.info("Starting schema discovery...")
 
         tables = await self._connector.get_tables()
-        columns: Dict[str, List[ColumnInfo]] = {}
-        sample_values: Dict[str, List[ValueCount]] = {}
+        columns: dict[str, list[ColumnInfo]] = {}
+        sample_values: dict[str, list[ValueCount]] = {}
 
         for table in tables:
             cols = await self._connector.get_columns(table.name)
@@ -65,6 +69,4 @@ class SchemaDiscoverer:
         dtype = col.data_type.lower()
         if any(t in dtype for t in ("varchar", "text", "char", "enum")):
             return True
-        if "bool" in dtype:
-            return True
-        return False
+        return "bool" in dtype

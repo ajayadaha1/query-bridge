@@ -5,15 +5,15 @@ from __future__ import annotations
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
-from querybridge.core.config import EngineConfig
-from querybridge.core.engine import QueryBridgeEngine
+if TYPE_CHECKING:
+    from querybridge.core.engine import QueryBridgeEngine
 
 logger = logging.getLogger("querybridge.server.api")
 
 # Lazy engine singleton
-_engine: Optional[QueryBridgeEngine] = None
+_engine: QueryBridgeEngine | None = None
 
 
 def _get_engine() -> QueryBridgeEngine:
@@ -31,21 +31,21 @@ def init_engine(engine: QueryBridgeEngine):
     _engine = engine
 
 
-def create_app(engine: Optional[QueryBridgeEngine] = None) -> Any:
+def create_app(engine: QueryBridgeEngine | None = None) -> Any:
     """Create and return a FastAPI application.
 
     If *engine* is provided, it will be used directly. Otherwise, the engine
     must be initialized separately via ``init_engine()`` before serving requests.
     """
     try:
-        from fastapi import FastAPI, HTTPException
+        from fastapi import FastAPI
         from fastapi.middleware.cors import CORSMiddleware
         from pydantic import BaseModel
-    except ImportError:
+    except ImportError as err:
         raise ImportError(
             "FastAPI is required for API mode. "
             "Install with: pip install querybridge[server]"
-        )
+        ) from err
 
     if engine:
         init_engine(engine)
@@ -72,20 +72,20 @@ def create_app(engine: Optional[QueryBridgeEngine] = None) -> Any:
 
     class ChatRequest(BaseModel):
         message: str
-        chat_id: Optional[str] = None
-        history: Optional[List[Dict[str, Any]]] = []
+        chat_id: str | None = None
+        history: list[dict[str, Any]] | None = []
 
     class ChatResponse(BaseModel):
         success: bool
         answer: str
         chat_id: str
         queries_executed: int
-        query_log: List[Dict[str, Any]]
+        query_log: list[dict[str, Any]]
         total_time_ms: int
-        last_sql: Optional[str] = None
-        thinking_steps: List[Dict[str, Any]] = []
+        last_sql: str | None = None
+        thinking_steps: list[dict[str, Any]] = []
         confidence_score: float = 1.0
-        validation_notes: List[str] = []
+        validation_notes: list[str] = []
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest):

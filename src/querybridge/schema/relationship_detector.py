@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Dict, List, Set
+from typing import TYPE_CHECKING
 
-from querybridge.connectors.base import DatabaseConnector
-from querybridge.core.models import ColumnInfo, Relationship, SchemaInfo
+from querybridge.core.models import Relationship, SchemaInfo
+
+if TYPE_CHECKING:
+    from querybridge.connectors.base import DatabaseConnector
 
 logger = logging.getLogger("querybridge.schema.relationship_detector")
 
@@ -18,7 +20,7 @@ class RelationshipDetector:
     def __init__(self, connector: DatabaseConnector):
         self._connector = connector
 
-    async def detect(self, schema: SchemaInfo) -> List[Relationship]:
+    async def detect(self, schema: SchemaInfo) -> list[Relationship]:
         """Detect additional relationships via naming heuristics."""
         existing = {
             (r.from_table, r.from_column, r.to_table, r.to_column)
@@ -26,13 +28,13 @@ class RelationshipDetector:
         }
 
         table_names = {t.name for t in schema.tables}
-        pk_map: Dict[str, str] = {}
+        pk_map: dict[str, str] = {}
         for table in schema.tables:
             for col in schema.columns.get(table.name, []):
                 if col.is_pk:
                     pk_map[table.name] = col.name
 
-        inferred: List[Relationship] = []
+        inferred: list[Relationship] = []
 
         for table in schema.tables:
             for col in schema.columns.get(table.name, []):

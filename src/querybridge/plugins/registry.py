@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from importlib.metadata import entry_points
-from typing import Dict, Optional, Type
 
 from querybridge.plugins.base import DomainPlugin
 from querybridge.plugins.builtin.generic import GenericPlugin
@@ -16,7 +15,7 @@ class PluginRegistry:
     """Discovers and loads domain plugins."""
 
     def __init__(self):
-        self._plugins: Dict[str, DomainPlugin] = {}
+        self._plugins: dict[str, DomainPlugin] = {}
         self._register_builtin()
 
     def _register_builtin(self):
@@ -27,7 +26,7 @@ class PluginRegistry:
         self._plugins[plugin.get_name()] = plugin
         logger.info(f"Registered plugin: {plugin.get_name()}")
 
-    def get(self, name: str) -> Optional[DomainPlugin]:
+    def get(self, name: str) -> DomainPlugin | None:
         """Get a registered plugin by name."""
         return self._plugins.get(name)
 
@@ -35,7 +34,7 @@ class PluginRegistry:
         """Discover plugins from installed packages via entry points."""
         try:
             eps = entry_points()
-            qb_eps = eps.get("querybridge.plugins", [])
+            qb_eps: list = eps.get("querybridge.plugins", [])
             for ep in qb_eps:
                 try:
                     plugin_cls = ep.load()

@@ -1,6 +1,5 @@
 """Tests for the plugin system."""
 
-import pytest
 from querybridge.plugins.base import DomainPlugin
 from querybridge.plugins.builtin.generic import GenericPlugin
 from querybridge.plugins.registry import PluginRegistry

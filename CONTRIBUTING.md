@@ -43,7 +43,7 @@ make lint       # run linter
 
 ### Writing Plugins
 
-One of the best ways to contribute is to write domain plugins! See the [plugin documentation](https://querybridge.dev/plugins/writing-plugins/).
+One of the best ways to contribute is to write domain plugins! See the [plugin documentation](https://github.com/ajayadaha1/query-bridge/blob/main/docs/plugins/writing-plugins.md).
 
 ### Adding Database Connectors
 

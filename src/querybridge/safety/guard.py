@@ -5,8 +5,6 @@ Works on top of the read-only DB role/connection.
 """
 
 import re
-from typing import Optional, Set, List, Tuple
-
 
 # Universal blocked keywords (all dialects)
 UNIVERSAL_BLOCKED = {
@@ -64,8 +62,8 @@ class SQLGuard:
         self,
         dialect: str = "generic",
         max_query_length: int = DEFAULT_MAX_QUERY_LENGTH,
-        extra_blocked_keywords: Optional[Set[str]] = None,
-        extra_blocked_patterns: Optional[List[str]] = None,
+        extra_blocked_keywords: set[str] | None = None,
+        extra_blocked_patterns: list[str] | None = None,
     ):
         self.dialect = dialect
         self.max_query_length = max_query_length
@@ -80,7 +78,7 @@ class SQLGuard:
         if extra_blocked_patterns:
             self.blocked_patterns.extend(extra_blocked_patterns)
 
-    def validate(self, sql: str) -> Tuple[bool, str]:
+    def validate(self, sql: str) -> tuple[bool, str]:
         """
         Validate a SQL statement for safety.
 

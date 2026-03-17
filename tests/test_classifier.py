@@ -1,6 +1,5 @@
 """Tests for classifier."""
 
-import pytest
 from querybridge.classifier.question_classifier import QuestionClassifier
 
 
