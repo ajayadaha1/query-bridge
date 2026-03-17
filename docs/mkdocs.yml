@@ -1,8 +1,9 @@
 site_name: QueryBridge
 site_url: https://github.com/ajayadaha1/query-bridge
 site_description: "Connect any database. Ask questions in plain English."
-repo_url: https://github.com/querybridge/querybridge
-repo_name: querybridge/querybridge
+repo_url: https://github.com/ajayadaha1/query-bridge
+repo_name: ajayadaha1/query-bridge
+docs_dir: "."
 
 theme:
   name: material
