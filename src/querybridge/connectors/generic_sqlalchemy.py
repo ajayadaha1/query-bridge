@@ -28,13 +28,15 @@ def _validate_identifier(name: str) -> str:
 class GenericSQLAlchemyConnector(DatabaseConnector):
     """Fallback connector using SQLAlchemy — works with any supported dialect."""
 
-    def __init__(self, connection_url: str, pool_size: int = 3):
+    def __init__(self, connection_url: str, read_only: bool = True, pool_size: int = 3):
+        self._read_only = read_only
         self._engine = create_async_engine(
             connection_url,
             pool_size=pool_size,
             max_overflow=2,
             pool_timeout=10,
             pool_pre_ping=True,
+            execution_options={"postgresql_readonly": True} if read_only else {},
         )
         self._session_factory = sessionmaker(
             self._engine, class_=AsyncSession, expire_on_commit=False
@@ -43,6 +45,8 @@ class GenericSQLAlchemyConnector(DatabaseConnector):
     async def execute(self, sql: str, max_rows: int = 500) -> QueryResult:
         start = time.monotonic()
         async with self._session_factory() as session:
+            if self._read_only:
+                await session.execute(text("SET TRANSACTION READ ONLY"))
             result = await session.execute(text(sql))
             columns = list(result.keys())
             rows = result.fetchmany(max_rows + 1)

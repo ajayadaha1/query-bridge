@@ -35,6 +35,12 @@ Thumbs.db
 # Environment
 .env
 .env.local
+.env.*
+
+# Snowflake / secrets
+.snowflake/
+*.p8
+*.pem
 
 # Docs build
 site/

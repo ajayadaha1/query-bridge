@@ -1,55 +1,55 @@
-# QueryBridge — Full Demo Stack
+# QueryBridge — Production Stack
 # Run: docker compose up
-# Open: http://localhost:3000 (Playground) | http://localhost:8000/docs (API)
+# Reach via: https://failsafe.amd.com/query-bridge/
 
 services:
-  # ─── Sample PostgreSQL Database ──────────────────────────────────────
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: chinook
-      POSTGRES_USER: querybridge
-      POSTGRES_PASSWORD: querybridge
-    volumes:
-      - ./demo/chinook_postgres.sql:/docker-entrypoint-initdb.d/01-chinook.sql:ro
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U querybridge -d chinook"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
   # ─── QueryBridge API Server ──────────────────────────────────────────
   api:
     build: .
+    container_name: querybridge_api
     environment:
-      QUERYBRIDGE_DSN: "postgresql://querybridge:querybridge@db:5432/chinook"
-      QUERYBRIDGE_API_KEY: "${OPENAI_API_KEY:-}"
-      QUERYBRIDGE_MODEL: "${QUERYBRIDGE_MODEL:-gpt-4o}"
-      QUERYBRIDGE_PROVIDER: "${QUERYBRIDGE_PROVIDER:-openai}"
-      CORS_ORIGINS: "http://localhost:3000,http://localhost:8000"
+      # Reads from .env — connects to Silicon Trace PostgreSQL
+      QUERYBRIDGE_DSN: ${QUERYBRIDGE_DSN}
+      QUERYBRIDGE_API_KEY: ${QUERYBRIDGE_API_KEY}
+      QUERYBRIDGE_BASE_URL: ${QUERYBRIDGE_BASE_URL}
+      QUERYBRIDGE_MODEL: ${QUERYBRIDGE_MODEL:-gpt-4}
+      QUERYBRIDGE_PROVIDER: ${QUERYBRIDGE_PROVIDER:-openai}
+      # Snowflake (optional second datasource)
+      SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT:-}
+      SNOWFLAKE_USER: ${SNOWFLAKE_USER:-}
+      SNOWFLAKE_ROLE: ${SNOWFLAKE_ROLE:-}
+      SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE:-}
+      SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE:-}
+      SNOWFLAKE_SCHEMA: ${SNOWFLAKE_SCHEMA:-}
+      SNOWFLAKE_PRIVATE_KEY_PATH: ${SNOWFLAKE_PRIVATE_KEY_PATH:-}
+      CORS_ORIGINS: "https://failsafe.amd.com,http://localhost:3000"
     ports:
-      - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
+      - "8200:8000"
+    volumes:
+      - ./.snowflake:/app/.snowflake:ro
     command: >
       uvicorn querybridge.server.api:app
       --host 0.0.0.0
       --port 8000
-      --reload
+    networks:
+      - querybridge_network
+      - failsafe_network
 
   # ─── Playground UI ──────────────────────────────────────────────────
   playground:
     build: ./playground
+    container_name: querybridge_playground
     ports:
-      - "3000:3000"
-    environment:
-      VITE_API_URL: "http://localhost:8000"
+      - "3100:3000"
     depends_on:
       - api
+    networks:
+      - querybridge_network
+      - failsafe_network
 
-volumes:
-  pgdata:
+networks:
+  querybridge_network:
+    driver: bridge
+  failsafe_network:
+    name: failsafedashboard_failsafe_network
+    external: true
