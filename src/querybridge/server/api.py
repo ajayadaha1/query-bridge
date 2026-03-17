@@ -113,3 +113,7 @@ def create_app(engine: QueryBridgeEngine | None = None) -> Any:
         return {"status": "ok", "engine_ready": _engine is not None}
 
     return app
+
+
+# Module-level app instance for `uvicorn querybridge.server.api:app`
+app = create_app()
