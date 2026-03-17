@@ -1,0 +1,55 @@
+# QueryBridge — Full Demo Stack
+# Run: docker compose up
+# Open: http://localhost:3000 (Playground) | http://localhost:8000/docs (API)
+
+services:
+  # ─── Sample PostgreSQL Database ──────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: chinook
+      POSTGRES_USER: querybridge
+      POSTGRES_PASSWORD: querybridge
+    volumes:
+      - ./demo/chinook_postgres.sql:/docker-entrypoint-initdb.d/01-chinook.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U querybridge -d chinook"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ─── QueryBridge API Server ──────────────────────────────────────────
+  api:
+    build: .
+    environment:
+      QUERYBRIDGE_DSN: "postgresql://querybridge:querybridge@db:5432/chinook"
+      QUERYBRIDGE_API_KEY: "${OPENAI_API_KEY:-}"
+      QUERYBRIDGE_MODEL: "${QUERYBRIDGE_MODEL:-gpt-4o}"
+      QUERYBRIDGE_PROVIDER: "${QUERYBRIDGE_PROVIDER:-openai}"
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      uvicorn querybridge.server.api:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  # ─── Playground UI ──────────────────────────────────────────────────
+  playground:
+    build: ./playground
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: "http://localhost:8000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

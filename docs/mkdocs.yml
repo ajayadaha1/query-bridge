@@ -1,0 +1,69 @@
+site_name: QueryBridge
+site_url: https://querybridge.dev
+site_description: "Connect any database. Ask questions in plain English."
+repo_url: https://github.com/querybridge/querybridge
+repo_name: querybridge/querybridge
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quickstart: getting-started/quickstart.md
+    - Docker Demo: getting-started/docker.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Agentic Loop: architecture/agentic-loop.md
+    - Safety: architecture/safety.md
+  - Plugins:
+    - Writing Plugins: plugins/writing-plugins.md
+    - Plugin API: plugins/api.md
+  - API Reference:
+    - Engine: api-reference/engine.md
+    - Connectors: api-reference/connectors.md
+    - LLM Providers: api-reference/llm.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [../src]
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true

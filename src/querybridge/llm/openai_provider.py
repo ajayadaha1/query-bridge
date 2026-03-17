@@ -1,0 +1,91 @@
+"""OpenAI / Azure OpenAI LLM provider."""
+
+from __future__ import annotations
+
+import json
+import logging
+from typing import Any, Dict, List, Optional
+
+from querybridge.llm.base import LLMProvider, LLMResponse
+
+logger = logging.getLogger("querybridge.llm.openai")
+
+
+class OpenAIProvider(LLMProvider):
+    """OpenAI or Azure OpenAI provider."""
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "gpt-4o",
+        base_url: Optional[str] = None,
+        organization: Optional[str] = None,
+        default_temperature: float = 0.0,
+    ):
+        import openai
+        kwargs: Dict[str, Any] = {"api_key": api_key}
+        if base_url:
+            kwargs["base_url"] = base_url
+        if organization:
+            kwargs["organization"] = organization
+        self._client = openai.AsyncOpenAI(**kwargs)
+        self._model = model
+        self._default_temperature = default_temperature
+
+    async def chat(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        model: Optional[str] = None,
+        temperature: float = 0.0,
+    ) -> LLMResponse:
+        kwargs: Dict[str, Any] = {
+            "model": model or self._model,
+            "messages": messages,
+            "temperature": temperature or self._default_temperature,
+        }
+        if tools:
+            kwargs["tools"] = tools
+
+        response = await self._client.chat.completions.create(**kwargs)
+        choice = response.choices[0]
+        message = choice.message
+
+        tool_calls = []
+        if message.tool_calls:
+            for tc in message.tool_calls:
+                try:
+                    args = json.loads(tc.function.arguments)
+                except (json.JSONDecodeError, TypeError):
+                    args = {"_raw": tc.function.arguments}
+                tool_calls.append({
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": json.dumps(args),
+                    },
+                })
+
+        usage = None
+        if response.usage:
+            usage = {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+                "total_tokens": response.usage.total_tokens,
+            }
+
+        return LLMResponse(
+            content=message.content,
+            tool_calls=tool_calls,
+            finish_reason=choice.finish_reason or "stop",
+            usage=usage,
+        )
+
+    def count_tokens(self, text: str) -> int:
+        try:
+            import tiktoken
+            enc = tiktoken.encoding_for_model(self._model)
+            return len(enc.encode(text))
+        except Exception:
+            return len(text) // 4
