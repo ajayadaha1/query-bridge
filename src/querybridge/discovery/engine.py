@@ -45,7 +45,7 @@ class DiscoveryEngine:
 
         Args:
             entities: Entity strings from classifier, e.g.:
-                ["customer:Alibaba", "error_amd:FP_PRF"]
+                ["customer:Acme Corp", "status:failed"]
         """
         brief = DiscoveryBrief()
 

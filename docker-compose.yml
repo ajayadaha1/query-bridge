@@ -1,6 +1,6 @@
-# QueryBridge — Production Stack
-# Run: docker compose up
-# Reach via: https://failsafe.amd.com/query-bridge/
+# QueryBridge — Docker Stack
+# Usage: cp .env.example .env && docker compose up
+# Open:  http://localhost:3000 (playground) or http://localhost:8000 (API)
 
 services:
   # ─── QueryBridge API Server ──────────────────────────────────────────
@@ -8,48 +8,40 @@ services:
     build: .
     container_name: querybridge_api
     environment:
-      # Reads from .env — connects to Silicon Trace PostgreSQL
-      QUERYBRIDGE_DSN: ${QUERYBRIDGE_DSN}
-      QUERYBRIDGE_API_KEY: ${QUERYBRIDGE_API_KEY}
-      QUERYBRIDGE_BASE_URL: ${QUERYBRIDGE_BASE_URL}
-      QUERYBRIDGE_MODEL: ${QUERYBRIDGE_MODEL:-gpt-4}
+      # Database (optional — demo Chinook DB loads automatically if omitted)
+      QUERYBRIDGE_DSN: ${QUERYBRIDGE_DSN:-}
+      QUERYBRIDGE_DEFAULT_NAME: ${QUERYBRIDGE_DEFAULT_NAME:-}
+      # LLM provider (required — configure in .env or via the ⚙ Settings panel)
+      QUERYBRIDGE_API_KEY: ${QUERYBRIDGE_API_KEY:-}
+      QUERYBRIDGE_BASE_URL: ${QUERYBRIDGE_BASE_URL:-}
+      QUERYBRIDGE_MODEL: ${QUERYBRIDGE_MODEL:-gpt-4o}
       QUERYBRIDGE_PROVIDER: ${QUERYBRIDGE_PROVIDER:-openai}
-      # Snowflake (optional second datasource)
-      SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT:-}
-      SNOWFLAKE_USER: ${SNOWFLAKE_USER:-}
-      SNOWFLAKE_ROLE: ${SNOWFLAKE_ROLE:-}
-      SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE:-}
-      SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE:-}
-      SNOWFLAKE_SCHEMA: ${SNOWFLAKE_SCHEMA:-}
-      SNOWFLAKE_PRIVATE_KEY_PATH: ${SNOWFLAKE_PRIVATE_KEY_PATH:-}
-      CORS_ORIGINS: "https://failsafe.amd.com,http://localhost:3000"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3100}
     ports:
-      - "8200:8000"
-    volumes:
-      - ./.snowflake:/app/.snowflake:ro
+      - "8000:8000"
     command: >
       uvicorn querybridge.server.api:app
       --host 0.0.0.0
       --port 8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
     networks:
-      - querybridge_network
-      - failsafe_network
+      - querybridge
 
   # ─── Playground UI ──────────────────────────────────────────────────
   playground:
     build: ./playground
     container_name: querybridge_playground
     ports:
-      - "3100:3000"
+      - "3000:3000"
     depends_on:
       - api
     networks:
-      - querybridge_network
-      - failsafe_network
+      - querybridge
 
 networks:
-  querybridge_network:
+  querybridge:
     driver: bridge
-  failsafe_network:
-    name: failsafedashboard_failsafe_network
-    external: true

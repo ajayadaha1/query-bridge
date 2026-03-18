@@ -14,7 +14,7 @@ class DomainPlugin(ABC):
 
     @abstractmethod
     def get_name(self) -> str:
-        """Plugin name (e.g., 'silicon-trace', 'ecommerce', 'finance')."""
+        """Plugin name (e.g., 'ecommerce', 'finance', 'analytics')."""
 
     def get_entity_patterns(self) -> dict[str, list[str]]:
         """Regex patterns for entity extraction.

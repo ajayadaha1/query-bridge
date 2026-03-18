@@ -5,8 +5,8 @@ Thank you for your interest in contributing! Here's how to get started.
 ## Development Setup
 
 ```bash
-git clone https://github.com/querybridge/querybridge
-cd querybridge
+git clone https://github.com/ajayadaha1/query-bridge
+cd query-bridge
 make dev        # installs with dev dependencies + pre-commit hooks
 make test       # run tests
 make lint       # run linter
@@ -15,12 +15,12 @@ make lint       # run linter
 ## How to Contribute
 
 ### Bug Reports
-- Use the [bug report template](https://github.com/querybridge/querybridge/issues/new?template=bug_report.md)
+- Use the [bug report template](https://github.com/ajayadaha1/query-bridge/issues/new?template=bug_report.md)
 - Include a minimal reproduction example
 - Mention your Python version, database, and LLM provider
 
 ### Feature Requests
-- Use the [feature request template](https://github.com/querybridge/querybridge/issues/new?template=feature_request.md)
+- Use the [feature request template](https://github.com/ajayadaha1/query-bridge/issues/new?template=feature_request.md)
 - Explain the use case, not just the feature
 
 ### Pull Requests

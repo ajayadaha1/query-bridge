@@ -7,12 +7,12 @@
 **The open-source NL2SQL engine that actually works in production.**
 
 [![PyPI version](https://img.shields.io/pypi/v/querybridge?color=blue)](https://pypi.org/project/querybridge/)
-[![CI](https://github.com/querybridge/querybridge/actions/workflows/ci.yml/badge.svg)](https://github.com/querybridge/querybridge/actions/workflows/ci.yml)
+[![CI](https://github.com/ajayadaha1/query-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/ajayadaha1/query-bridge/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/querybridge)](https://pypi.org/project/querybridge/)
 
-[Documentation](https://github.com/ajayadaha1/query-bridge/tree/main/docs) · [Playground](https://failsafe.amd.com/query-bridge/) · [Issues](https://github.com/ajayadaha1/query-bridge/issues)
+[Documentation](https://github.com/ajayadaha1/query-bridge/tree/main/docs) · [Playground Demo](#30-second-demo) · [Issues](https://github.com/ajayadaha1/query-bridge/issues)
 
 </div>
 
@@ -52,10 +52,11 @@ asyncio.run(main())
 **Or use Docker with the built-in playground:**
 
 ```bash
-git clone https://github.com/querybridge/querybridge && cd querybridge
-echo "OPENAI_API_KEY=sk-..." > .env
+git clone https://github.com/ajayadaha1/query-bridge && cd query-bridge
+cp .env.example .env          # edit .env to add your LLM API key
 docker compose up
-# Open http://localhost:3000 — start chatting with the demo database
+# Open http://localhost:3100 — the demo Chinook database is loaded automatically
+# Click the ⚙ gear icon to configure your LLM provider and add more databases
 ```
 
 <br>
@@ -81,8 +82,11 @@ docker compose up
 - **Any LLM** — OpenAI, Anthropic, or 100+ models via LiteLLM
 - **Agentic Loop** — Multi-step reasoning: classify → discover → generate → validate → self-correct
 - **Safety First** — SQL Guard blocks destructive queries. Read-only connections. Result validation.
+- **Playground UI** — Chat interface with ⚙ Settings panel to configure LLM providers and databases at runtime
+- **Multi-Database** — Connect multiple databases simultaneously; query them in parallel
 - **Plugin System** — Inject domain knowledge (e-commerce, healthcare, finance) without touching core code
 - **5 Server Modes** — Python API, REST (FastAPI), WebSocket, CLI, MCP tool server
+- **Demo Database** — Ships with Chinook music store DB — works out of the box, no database setup needed
 - **Schema Discovery** — Auto-discovers tables, columns, types, relationships, and enums
 - **Conversation Memory** — Multi-turn context across questions in a session
 - **Export** — CSV, JSON, Excel with one method call
@@ -207,13 +211,20 @@ healthcare = "my_package:HealthcarePlugin"
 
 ## Configuration
 
+Configuration can be set via environment variables or at runtime through the playground ⚙ Settings panel.
+
 | Env Variable | Description | Default |
 |---|---|---|
-| `QUERYBRIDGE_DSN` | Database connection string | — |
+| `QUERYBRIDGE_DSN` | Database connection string | *demo Chinook DB* |
 | `QUERYBRIDGE_API_KEY` | LLM API key | — |
 | `QUERYBRIDGE_MODEL` | LLM model name | `gpt-4o` |
 | `QUERYBRIDGE_PROVIDER` | LLM provider (`openai` / `anthropic` / `litellm`) | `openai` |
 | `QUERYBRIDGE_BASE_URL` | Custom API base URL (for local/proxy LLMs) | — |
+| `QUERYBRIDGE_CUSTOM_AUTH_HEADER` | Custom header name for LLM auth (e.g. `Ocp-Apim-Subscription-Key`) | — |
+| `QUERYBRIDGE_DEFAULT_NAME` | Display name for the default datasource | `Default Database` |
+
+> **No database required to get started!** If `QUERYBRIDGE_DSN` is not set, QueryBridge
+> automatically loads the bundled Chinook demo database (a music store with 11 tables).
 
 <br>
 
@@ -269,6 +280,6 @@ MIT — use it anywhere.
 
 **Built with** 🐍 Python · ⚡ asyncio · 🤖 LLMs
 
-[Star this repo](https://github.com/querybridge/querybridge) if you find it useful!
+[Star this repo](https://github.com/ajayadaha1/query-bridge) if you find it useful!
 
 </div>
