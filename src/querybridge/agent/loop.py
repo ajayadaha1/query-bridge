@@ -46,6 +46,17 @@ logger = logging.getLogger("querybridge.agent.loop")
 MONOLOGUE_MAX_LEN = 4000
 
 
+class _ToolCall:
+    """Lightweight wrapper for tool call dicts from LLM responses."""
+    __slots__ = ("id", "name", "arguments")
+
+    def __init__(self, d: dict[str, Any]):
+        self.id = d.get("id", "")
+        func = d.get("function", {})
+        self.name = func.get("name", "")
+        self.arguments = func.get("arguments", "{}")
+
+
 def _get_phase(iteration: int, phase_budgets: dict[str, int]) -> str:
     """Determine current investigation phase from iteration count."""
     explore_end = phase_budgets.get("explore", 2)
@@ -109,7 +120,7 @@ def _compute_confidence(
         score -= 0.2
     if total_iterations > max_iterations * 0.8:
         score -= 0.1
-    if result_validator.high_null_warnings > 0:
+    if getattr(result_validator, 'high_null_warnings', 0) > 0:
         score -= 0.1
     return max(0.1, min(1.0, round(score, 2)))
 
@@ -150,28 +161,32 @@ class AgentLoop:
         self.plugin = plugin or GenericPlugin()
         self.schema_cache = schema_cache or SchemaCache(connector, self.plugin)
         self.memory_store = memory_store or MemoryStore(
-            max_sessions=100, session_ttl=config.session_ttl
+            max_sessions=100, ttl_seconds=config.session_ttl_seconds
         )
         self.few_shot = few_shot or FewShotRegistry()
-        self.classifier = QuestionClassifier(plugin=self.plugin)
+        self.classifier = QuestionClassifier(
+            entity_patterns=self.plugin.get_entity_patterns(),
+            entity_column_map=self.plugin.get_entity_column_map(),
+            extra_question_patterns=self.plugin.get_question_type_patterns(),
+        )
         self.guard = SQLGuard(dialect=connector.get_dialect_name())
 
         # Register plugin few-shot examples
         for ex in self.plugin.get_few_shot_examples():
-            self.few_shot.add(
+            self.few_shot.add_example(
                 question=ex["question"],
                 sql=ex["sql"],
                 explanation=ex.get("explanation", ""),
             )
 
-        # Build tool registry
+        # Build tool registry (dispatch happens via _dispatch_tool_by_name)
         self.tool_registry = ToolRegistry()
         for tool_def in BUILTIN_TOOLS:
-            self.tool_registry.register(tool_def, self._dispatch_tool)
+            self.tool_registry.register(tool_def, self._dispatch_tool_by_name)
 
         # Register plugin custom tools
         for tool_def in self.plugin.get_custom_tools():
-            self.tool_registry.register(tool_def, self._dispatch_tool)
+            self.tool_registry.register(tool_def, self._dispatch_tool_by_name)
 
     async def run(self, request: QueryRequest) -> QueryResponse:
         """Execute the full agentic loop for a query."""
@@ -207,7 +222,9 @@ class AgentLoop:
             if profile.needs_discovery and profile.implied_entities:
                 try:
                     discovery_engine = DiscoveryEngine(
-                        self.connector, self.plugin
+                        self.connector,
+                        entity_column_map=self.plugin.get_entity_column_map(),
+                        primary_table=self.plugin.get_primary_table(),
                     )
                     discovery_brief = await discovery_engine.run_discovery(
                         profile.implied_entities
@@ -217,7 +234,7 @@ class AgentLoop:
                     )
                     if discovery_brief.total_row_estimate > 0:
                         result_validator.set_expectations(
-                            expected_row_estimate=discovery_brief.total_row_estimate,
+                            expected=discovery_brief.total_row_estimate,
                         )
                     for vf in discovery_brief.verified_filters:
                         if vf.status == "exact_match":
@@ -228,14 +245,15 @@ class AgentLoop:
                     logger.warning(f"Pre-flight discovery failed: {e}")
 
             # Build system prompt
-            schema_text = await self.schema_cache.get_schema_text()
+            schema_text = await self.schema_cache.get_schema_context()
             system_prompt = build_system_prompt(
-                schema_text=schema_text,
-                plugin=self.plugin,
-                few_shot=self.few_shot,
-                discovery_text=discovery_text,
-                memory_text=memory.format_for_prompt(),
-                strategy_text=strategy_tracker.get_escalation_context(),
+                schema_context=schema_text,
+                plugin_context=self.plugin.get_system_prompt_context(),
+                few_shot_examples=self.few_shot.get_examples(),
+                discovery_context=discovery_text,
+                memory_context=memory.format_for_prompt(),
+                strategy_context=strategy_tracker.get_status_summary(),
+                response_formatting=self.plugin.get_response_formatting_rules(),
             )
 
             # Build messages
@@ -312,7 +330,7 @@ class AgentLoop:
                 )
 
                 content = llm_response.content
-                tool_calls = llm_response.tool_calls
+                tool_calls = [_ToolCall(tc) for tc in llm_response.tool_calls]
 
                 # Capture thinking
                 if content:
@@ -337,16 +355,14 @@ class AgentLoop:
                         f"Answered in {iteration + 1} iterations",
                     )
                     return QueryResponse(
-                        success=True,
                         answer=final_answer,
                         chat_id=chat_id,
-                        queries_executed=len(query_log),
-                        query_log=[QueryLogEntry(**e) for e in query_log],
+                        query_log=query_log,
                         total_time_ms=elapsed_ms,
                         last_sql=_extract_last_sql(query_log),
                         thinking_steps=thinking_steps,
-                        confidence_score=confidence,
-                        validation_notes=all_validation_notes,
+                        confidence=confidence,
+                        iterations_used=iteration + 1,
                     )
 
                 # Process tool calls
@@ -409,31 +425,26 @@ class AgentLoop:
                 self.config.max_iterations, self.config.max_iterations,
             )
             return QueryResponse(
-                success=True,
                 answer="I ran out of query iterations. Here's what I found so far.",
                 chat_id=chat_id,
-                queries_executed=len(query_log),
-                query_log=[QueryLogEntry(**e) for e in query_log],
+                query_log=query_log,
                 total_time_ms=elapsed_ms,
                 last_sql=_extract_last_sql(query_log),
                 thinking_steps=thinking_steps,
-                confidence_score=confidence,
-                validation_notes=all_validation_notes,
+                confidence=confidence,
+                iterations_used=self.config.max_iterations,
             )
 
         except Exception as e:
             elapsed_ms = int((time.monotonic() - start_time) * 1000)
             logger.error(f"AgentLoop error: {e}", exc_info=True)
             return QueryResponse(
-                success=False,
                 answer=f"Error: {str(e)}",
                 chat_id=chat_id,
-                queries_executed=len(query_log),
-                query_log=[QueryLogEntry(**e) for e in query_log],
+                query_log=query_log,
                 total_time_ms=elapsed_ms,
                 thinking_steps=thinking_steps,
-                validation_notes=all_validation_notes,
-                confidence_score=0.1,
+                confidence=0.1,
             )
 
     async def _dispatch_tool_by_name(

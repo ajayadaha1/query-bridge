@@ -35,10 +35,10 @@ class QueryResponse:
     """The complete response from QueryBridge."""
     answer: str
     chat_id: str
-    query_log: list[QueryLogEntry] = field(default_factory=list)
+    query_log: list[dict[str, Any]] = field(default_factory=list)
     last_sql: str | None = None
     confidence: float = 0.0
-    thinking_steps: list[str] = field(default_factory=list)
+    thinking_steps: list[dict[str, Any]] = field(default_factory=list)
     iterations_used: int = 0
     total_time_ms: int = 0
 
@@ -46,15 +46,7 @@ class QueryResponse:
         return {
             "answer": self.answer,
             "chat_id": self.chat_id,
-            "query_log": [
-                {
-                    "sql": e.sql, "reason": e.reason,
-                    "row_count": e.row_count,
-                    "execution_time_ms": e.execution_time_ms,
-                    "blocked": e.blocked, "error": e.error,
-                }
-                for e in self.query_log
-            ],
+            "query_log": self.query_log,
             "last_sql": self.last_sql,
             "confidence": self.confidence,
             "thinking_steps": self.thinking_steps,

@@ -404,14 +404,14 @@
       <h1>Ask your database anything</h1>
       <p>
         QueryBridge translates your questions into SQL, executes them safely,
-        and returns structured answers. Connected to a sample music store database.
+        and returns structured answers. Connected to the Silicon Trace database.
       </p>
       <div class="suggestions">
-        <div class="suggestion" onclick="askQuestion(this.textContent)">What are the top 10 best-selling artists?</div>
-        <div class="suggestion" onclick="askQuestion(this.textContent)">Which country generates the most revenue?</div>
-        <div class="suggestion" onclick="askQuestion(this.textContent)">Show monthly sales trend</div>
-        <div class="suggestion" onclick="askQuestion(this.textContent)">How many tracks per genre?</div>
-        <div class="suggestion" onclick="askQuestion(this.textContent)">Who are the longest-serving employees?</div>
+        <div class="suggestion" onclick="askQuestion(this.textContent)">Show me all tables in the database</div>
+        <div class="suggestion" onclick="askQuestion(this.textContent)">What are the most common error categories?</div>
+        <div class="suggestion" onclick="askQuestion(this.textContent)">How many assets have been processed?</div>
+        <div class="suggestion" onclick="askQuestion(this.textContent)">Show recent failure summaries</div>
+        <div class="suggestion" onclick="askQuestion(this.textContent)">What source files have the most records?</div>
       </div>
     </div>
   </main>
@@ -508,10 +508,12 @@
         // Remove thinking indicator
         thinkingEl.remove();
 
-        // Show thinking steps
+        // Show thinking steps (list of strings from API)
         if (data.thinking_steps) {
           for (const step of data.thinking_steps) {
-            if (step.phase !== 'final_answer' && step.reasoning) {
+            if (typeof step === 'string') {
+              addThinkingStep('thinking', step);
+            } else if (step.phase !== 'final_answer' && step.reasoning) {
               addThinkingStep(step.phase, step.reasoning);
             }
           }
@@ -524,9 +526,9 @@
         addMetaBar({
           queries: data.queries_executed,
           time: data.total_time_ms,
-          confidence: data.confidence_score,
+          confidence: data.confidence,
           sql: data.last_sql,
-          notes: data.validation_notes,
+          iterations: data.iterations_used,
         });
 
       } catch (err) {
@@ -586,6 +588,7 @@
         <span class="meta-item">⚡ ${meta.queries} queries</span>
         <span class="meta-item">⏱ ${meta.time}ms</span>
         <span class="meta-item ${confClass}">● ${confPct}% confidence</span>
+        <span class="meta-item">🔄 ${meta.iterations || 0} iterations</span>
       `;
 
       if (meta.sql) {

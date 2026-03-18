@@ -31,6 +31,7 @@ class AnthropicProvider(LLMProvider):
         tools: list[dict[str, Any]] | None = None,
         model: str | None = None,
         temperature: float = 0.0,
+        max_tokens: int | None = None,
     ) -> LLMResponse:
         # Separate system message from conversation messages
         system_content = ""

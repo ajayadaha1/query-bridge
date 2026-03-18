@@ -21,6 +21,7 @@ class OpenAIProvider(LLMProvider):
         base_url: str | None = None,
         organization: str | None = None,
         default_temperature: float = 0.0,
+        default_headers: dict[str, str] | None = None,
     ):
         import openai
         kwargs: dict[str, Any] = {"api_key": api_key}
@@ -28,6 +29,8 @@ class OpenAIProvider(LLMProvider):
             kwargs["base_url"] = base_url
         if organization:
             kwargs["organization"] = organization
+        if default_headers:
+            kwargs["default_headers"] = default_headers
         self._client = openai.AsyncOpenAI(**kwargs)
         self._model = model
         self._default_temperature = default_temperature
@@ -38,6 +41,7 @@ class OpenAIProvider(LLMProvider):
         tools: list[dict[str, Any]] | None = None,
         model: str | None = None,
         temperature: float = 0.0,
+        max_tokens: int | None = None,
     ) -> LLMResponse:
         kwargs: dict[str, Any] = {
             "model": model or self._model,
@@ -46,6 +50,8 @@ class OpenAIProvider(LLMProvider):
         }
         if tools:
             kwargs["tools"] = tools
+        if max_tokens:
+            kwargs["max_tokens"] = max_tokens
 
         response = await self._client.chat.completions.create(**kwargs)
         choice = response.choices[0]
