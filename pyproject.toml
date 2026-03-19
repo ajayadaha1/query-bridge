@@ -47,7 +47,7 @@ Changelog = "https://github.com/ajayadaha1/query-bridge/blob/main/CHANGELOG.md"
 postgresql = ["asyncpg>=0.29.0"]
 mysql = ["aiomysql>=0.2.0"]
 sqlite = ["aiosqlite>=0.20.0"]
-snowflake = ["snowflake-connector-python>=3.0.0"]
+snowflake = ["snowflake-connector-python>=3.0.0", "snowflake-sqlalchemy>=1.5.0", "cryptography>=42.0.0"]
 mssql = ["aioodbc>=0.5.0"]
 bigquery = ["google-cloud-bigquery>=3.0.0"]
 litellm = ["litellm>=1.0.0"]

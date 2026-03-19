@@ -4,10 +4,14 @@ import re
 
 
 def sanitize_user_input(text: str, max_length: int = 2000) -> str:
-    """Sanitize user input to prevent prompt injection.
+    """Sanitize user input for safe processing.
 
-    Strips known prompt injection patterns while preserving
-    legitimate analytical questions.
+    Applies basic input hygiene:
+    - Truncates to max_length to prevent context overflow
+    - Removes null bytes
+
+    Note: Prompt injection defense is handled by the system prompt
+    design and tool-level validation, not by input stripping.
     """
     if not text:
         return ""

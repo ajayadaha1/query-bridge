@@ -20,6 +20,8 @@ class PluginRegistry:
 
     def _register_builtin(self):
         self._plugins["generic"] = GenericPlugin()
+        from querybridge.plugins.builtin.manufacturing import ManufacturingPlugin
+        self._plugins["manufacturing"] = ManufacturingPlugin()
 
     def register(self, plugin: DomainPlugin):
         """Register a plugin instance."""

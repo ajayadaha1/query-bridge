@@ -12,6 +12,7 @@ class EngineConfig:
     max_rows: int = 500
     statement_timeout_ms: int = 10_000
     max_query_length: int = 10_000
+    temperature: float = 0.0
 
     # Context window
     max_context_chars: int = 120_000
@@ -19,7 +20,6 @@ class EngineConfig:
 
     # Schema discovery
     schema_cache_ttl_seconds: int = 300
-    schema_sample_size: int = 250
     auto_discover: bool = True
 
     # Conversation memory

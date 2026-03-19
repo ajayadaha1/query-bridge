@@ -749,19 +749,73 @@
       var thinkingEl = addThinking('Analyzing your question...');
 
       try {
-        var res = await fetch(API_URL + '/api/chat', {
+        // Use SSE streaming for real-time progress
+        var res = await fetch(API_URL + '/api/chat/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: text, chat_id: chatId, history: [] }),
         });
-        var data = await res.json();
-        thinkingEl.remove();
 
-        // Multi-DB response
-        if (data.results) {
-          renderMultiResponse(data);
+        if (res.headers.get('content-type')?.includes('text/event-stream')) {
+          // SSE streaming mode — process events line by line
+          var reader = res.body.getReader();
+          var decoder = new TextDecoder();
+          var buffer = '';
+          var completed = false;
+
+          while (!completed) {
+            var chunk = await reader.read();
+            if (chunk.done) break;
+            buffer += decoder.decode(chunk.value, { stream: true });
+
+            var lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (var li = 0; li < lines.length; li++) {
+              var line = lines[li].trim();
+              if (!line.startsWith('data: ')) continue;
+              try {
+                var evt = JSON.parse(line.slice(6));
+              } catch (e) { continue; }
+
+              if (evt.type === 'status') {
+                thinkingEl.querySelector('span:last-child').textContent = evt.detail || evt.step;
+              } else if (evt.type === 'routing') {
+                thinkingEl.remove();
+                addRoutingIndicator(evt.routed_to);
+                thinkingEl = addThinking('Querying databases...');
+              } else if (evt.type === 'thinking' && evt.phase !== 'final_answer' && !_hiddenPhases[evt.phase]) {
+                thinkingEl.remove();
+                var dsLabel = evt.datasource_name ? '[' + evt.datasource_name + '] ' : '';
+                addThinkingStep(evt.phase, dsLabel + evt.reasoning);
+                thinkingEl = addThinking('Thinking...');
+              } else if (evt.type === 'tool_call') {
+                thinkingEl.remove();
+                var toolIcons = { execute_sql: '\u26A1', explore_table: '\u{1F4CA}', search_schema: '\u{1F50D}', get_distinct_values: '\u{1F4CB}', validate_filter_values: '\u2705', column_profile: '\u{1F4CA}', count_estimate: '\u{1F522}', cross_validate: '\u{1F504}' };
+                var tIcon = toolIcons[evt.tool] || '\u{1F527}';
+                var dsTag = evt.datasource_name ? '[' + evt.datasource_name + '] ' : '';
+                addThinkingStep('execute', dsTag + tIcon + ' ' + evt.tool + '(' + Object.values(evt.args || {}).join(', ').slice(0, 60) + ')');
+                thinkingEl = addThinking('Running ' + evt.tool + '...');
+              } else if (evt.type === 'tool_result') {
+                if (evt.summary) {
+                  thinkingEl.querySelector('span:last-child').textContent = evt.tool + ' \u2192 ' + evt.summary;
+                }
+              } else if (evt.type === 'complete') {
+                completed = true;
+                thinkingEl.remove();
+                chatId = evt.chat_id;
+                renderSingleResponse(evt);
+              }
+            }
+          }
+          if (!completed) {
+            thinkingEl.remove();
+            addMessage('assistant', 'Stream ended unexpectedly.');
+          }
         } else {
-          // Single response
+          // Fallback: non-streaming JSON response
+          var data = await res.json();
+          thinkingEl.remove();
           chatId = data.chat_id;
           renderSingleResponse(data);
         }
@@ -772,12 +826,24 @@
       isLoading = false; sendBtn.disabled = false; input.focus();
     }
 
+    var _hiddenPhases = { classification: 1 };
+
+    function addRoutingIndicator(routedTo) {
+      if (!routedTo || !routedTo.length) return;
+      var div = document.createElement('div');
+      div.className = 'thinking';
+      div.innerHTML = '<span>\u{1F3AF}</span><span><strong>routed</strong> &mdash; ' +
+        escapeHtml(routedTo.join(', ')) + '</span>';
+      chatArea.appendChild(div);
+    }
+
     function renderSingleResponse(data) {
+      if (data.routed_to) addRoutingIndicator(data.routed_to);
       if (data.thinking_steps) {
         for (var i = 0; i < data.thinking_steps.length; i++) {
           var step = data.thinking_steps[i];
           if (typeof step === 'string') addThinkingStep('thinking', step);
-          else if (step.phase !== 'final_answer' && step.reasoning) addThinkingStep(step.phase, step.reasoning);
+          else if (step.phase !== 'final_answer' && !_hiddenPhases[step.phase] && step.reasoning) addThinkingStep(step.phase, step.reasoning);
         }
       }
       addMessage('assistant', data.answer, data.datasource_name);
@@ -819,7 +885,7 @@
           for (var k = 0; k < r.thinking_steps.length; k++) {
             var step = r.thinking_steps[k];
             if (typeof step === 'string') appendThinkingTo(panel, 'thinking', step);
-            else if (step.phase !== 'final_answer' && step.reasoning) appendThinkingTo(panel, step.phase, step.reasoning);
+            else if (step.phase !== 'final_answer' && !_hiddenPhases[step.phase] && step.reasoning) appendThinkingTo(panel, step.phase, step.reasoning);
           }
         }
         var msgDiv = document.createElement('div');

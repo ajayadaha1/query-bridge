@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any
 from querybridge.agent.loop import AgentLoop
 from querybridge.core.config import EngineConfig
 from querybridge.core.models import QueryRequest, QueryResponse
+from querybridge.memory.persistent import PersistentQueryMemory
+from querybridge.memory.exploration import ExplorationMemory
 from querybridge.memory.store import MemoryStore
 from querybridge.plugins.builtin.generic import GenericPlugin
 from querybridge.plugins.registry import PluginRegistry
@@ -40,16 +42,22 @@ class QueryBridgeEngine:
         llm: LLMProvider,
         config: EngineConfig | None = None,
         plugin: DomainPlugin | None = None,
+        datasource_id: str = "default",
     ):
         self.connector = connector
         self.llm = llm
         self.config = config or EngineConfig()
         self.plugin = plugin or GenericPlugin()
-        self.schema_cache = SchemaCache(connector, self.plugin)
+        self.schema_cache = SchemaCache(
+            connector, self.plugin, cache_dir="/tmp/querybridge_cache"
+        )
         self.memory_store = MemoryStore(
             max_sessions=100, ttl_seconds=self.config.session_ttl_seconds
         )
         self.few_shot = FewShotRegistry()
+        self.persistent_memory = PersistentQueryMemory(datasource=datasource_id)
+        self.exploration_memory = ExplorationMemory(datasource=datasource_id)
+        self.rag_sync = None  # Set by api.py for PostgreSQL datasources
 
         # Register plugin few-shot examples
         for ex in self.plugin.get_few_shot_examples():
@@ -67,6 +75,9 @@ class QueryBridgeEngine:
             schema_cache=self.schema_cache,
             memory_store=self.memory_store,
             few_shot=self.few_shot,
+            persistent_memory=self.persistent_memory,
+            rag_sync=self.rag_sync,
+            exploration_memory=self.exploration_memory,
         )
 
         logger.info(
@@ -90,9 +101,29 @@ class QueryBridgeEngine:
         )
         return await self._agent.run(request)
 
+    async def query_stream(
+        self,
+        question: str,
+        chat_id: str | None = None,
+        history: list | None = None,
+    ):
+        """Execute a query with streaming progress events (async generator)."""
+        request = QueryRequest(
+            question=question,
+            chat_id=chat_id,
+            history=history or [],
+        )
+        async for event in self._agent.run_streaming(request):
+            yield event
+
     async def close(self):
         """Clean up resources."""
         await self.connector.close()
+        if self.rag_sync:
+            try:
+                await self.rag_sync.close()
+            except Exception:
+                pass
 
     async def __aenter__(self):
         return self

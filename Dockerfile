@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python deps
 COPY pyproject.toml README.md ./
 COPY src/ src/
-RUN pip install --no-cache-dir ".[server,postgresql,sqlite,export]"
+RUN pip install --no-cache-dir ".[server,postgresql,sqlite,snowflake,export]"
 
 # Copy demo database
 COPY demo/ demo/

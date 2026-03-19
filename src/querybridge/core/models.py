@@ -95,6 +95,21 @@ class ValueCount:
 
 
 @dataclass
+class SchemaIndex:
+    """Lightweight table→columns index for lazy discovery (Tier 1).
+
+    Built from a single information_schema query. Enough for the LLM
+    to know *what exists* without full sampling.
+    """
+    tables: dict[str, list[str]] = field(default_factory=dict)
+    """Mapping of table_name → [column_name, ...]"""
+    column_types: dict[str, str] = field(default_factory=dict)
+    """Mapping of 'table.column' → data_type"""
+    table_count: int = 0
+    total_column_count: int = 0
+
+
+@dataclass
 class SchemaInfo:
     """Complete schema discovery result."""
     tables: list[TableInfo] = field(default_factory=list)

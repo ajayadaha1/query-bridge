@@ -301,3 +301,233 @@ async def handle_cross_validate(
             "error": str(e),
         })
         return {"error": str(e)}
+
+
+def search_schema_index(
+    schema_index: dict[str, list[str]],
+    column_types: dict[str, str],
+    keywords: str,
+) -> dict[str, Any]:
+    """Search the schema index for tables/columns matching keywords.
+
+    Pure in-memory fuzzy search — no DB calls. Returns matching tables
+    with their columns and types.
+    """
+    terms = [t.lower() for t in keywords.split() if t]
+    if not terms:
+        return {"error": "No search keywords provided", "matches": []}
+
+    scored: dict[str, float] = {}
+    matched_cols: dict[str, list[str]] = {}
+
+    for table, columns in schema_index.items():
+        table_lower = table.lower()
+        score = 0.0
+        hits: list[str] = []
+
+        for term in terms:
+            # Table name match (high weight)
+            if term in table_lower:
+                score += 3.0
+            # Exact table name match (bonus)
+            if term == table_lower:
+                score += 2.0
+
+            # Column name matches
+            for col in columns:
+                col_lower = col.lower()
+                if term in col_lower:
+                    score += 1.5
+                    hits.append(col)
+                elif term == col_lower:
+                    score += 2.0
+                    hits.append(col)
+
+        if score > 0:
+            scored[table] = score
+            matched_cols[table] = list(dict.fromkeys(hits))  # dedupe, keep order
+
+    # Sort by score descending, take top 15
+    ranked = sorted(scored.items(), key=lambda x: x[1], reverse=True)[:15]
+
+    results = []
+    for table, score in ranked:
+        cols = schema_index[table]
+        col_details = []
+        for c in cols:
+            dtype = column_types.get(f"{table}.{c}", "unknown")
+            col_details.append({"name": c, "type": dtype})
+        results.append({
+            "table": table,
+            "columns": col_details,
+            "matched_columns": matched_cols.get(table, []),
+            "relevance_score": round(score, 1),
+        })
+
+    return {
+        "query": keywords,
+        "match_count": len(results),
+        "matches": results,
+    }
+
+
+async def handle_search_schema(
+    schema_index: dict[str, list[str]],
+    column_types: dict[str, str],
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
+    iteration: int,
+) -> dict[str, Any]:
+    """Handle the search_schema tool call."""
+    keywords = args.get("keywords", "")
+    result = search_schema_index(schema_index, column_types, keywords)
+    query_log.append({
+        "iteration": iteration,
+        "tool": "search_schema",
+        "keywords": keywords,
+        "match_count": result.get("match_count", 0),
+    })
+    return result
+
+
+# ============================================================================
+# Exploration Memory tool handlers
+# ============================================================================
+
+async def handle_recall_explorations(
+    exploration_memory: Any,
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
+    iteration: int,
+) -> dict[str, Any]:
+    """Recall exploration notes from persistent memory."""
+    topic = args.get("topic", "")
+    note_types = args.get("note_types")
+    try:
+        notes = exploration_memory.recall(
+            topic=topic,
+            note_types=note_types,
+            limit=8,
+        )
+        result = {
+            "topic": topic,
+            "notes_found": len(notes),
+            "notes": [
+                {
+                    "id": n.id,
+                    "type": n.note_type,
+                    "subject": n.subject,
+                    "content": n.content,
+                    "confidence": n.confidence,
+                    "times_used": n.times_used,
+                }
+                for n in notes
+            ],
+        }
+        query_log.append({
+            "iteration": iteration,
+            "tool": "recall_explorations",
+            "topic": topic,
+            "notes_found": len(notes),
+        })
+        return result
+    except Exception as e:
+        query_log.append({
+            "iteration": iteration,
+            "tool": "recall_explorations",
+            "error": str(e),
+        })
+        return {"error": str(e)}
+
+
+async def handle_note_exploration(
+    exploration_memory: Any,
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
+    iteration: int,
+    source_question: str = "",
+) -> dict[str, Any]:
+    """Store an exploration note."""
+    subject = args.get("subject", "")
+    observation = args.get("observation", "")
+    note_type = args.get("note_type", "table_profile")
+    try:
+        note_id = exploration_memory.note(
+            note_type=note_type,
+            subject=subject,
+            content=observation,
+            source_question=source_question,
+        )
+        query_log.append({
+            "iteration": iteration,
+            "tool": "note_exploration",
+            "subject": subject,
+            "note_type": note_type,
+        })
+        return {"stored": True, "note_id": note_id}
+    except Exception as e:
+        query_log.append({
+            "iteration": iteration,
+            "tool": "note_exploration",
+            "error": str(e),
+        })
+        return {"error": str(e)}
+
+
+async def handle_note_relationship(
+    exploration_memory: Any,
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
+    iteration: int,
+) -> dict[str, Any]:
+    """Store a discovered relationship."""
+    try:
+        note_id = exploration_memory.note_relationship(
+            from_table=args.get("from_table", ""),
+            from_column=args.get("from_column", ""),
+            to_table=args.get("to_table", ""),
+            to_column=args.get("to_column", ""),
+            notes=args.get("notes", ""),
+        )
+        query_log.append({
+            "iteration": iteration,
+            "tool": "note_relationship",
+            "from": f"{args.get('from_table')}.{args.get('from_column')}",
+            "to": f"{args.get('to_table')}.{args.get('to_column')}",
+        })
+        return {"stored": True, "note_id": note_id}
+    except Exception as e:
+        query_log.append({
+            "iteration": iteration,
+            "tool": "note_relationship",
+            "error": str(e),
+        })
+        return {"error": str(e)}
+
+
+async def handle_note_query_path(
+    exploration_memory: Any,
+    args: dict[str, Any],
+    query_log: list[dict[str, Any]],
+    iteration: int,
+) -> dict[str, Any]:
+    """Store a multi-step query recipe."""
+    try:
+        note_id = exploration_memory.note_query_path(
+            question_pattern=args.get("question_pattern", ""),
+            steps=args.get("steps", []),
+            final_sql=args.get("final_sql", ""),
+        )
+        query_log.append({
+            "iteration": iteration,
+            "tool": "note_query_path",
+            "pattern": args.get("question_pattern", "")[:80],
+        })
+        return {"stored": True, "note_id": note_id}
+    except Exception as e:
+        query_log.append({
+            "iteration": iteration,
+            "tool": "note_query_path",
+            "error": str(e),
+        })
+        return {"error": str(e)}

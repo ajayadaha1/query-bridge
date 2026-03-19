@@ -194,6 +194,154 @@ CROSS_VALIDATE = ToolDefinition(
     },
 )
 
+SEARCH_SCHEMA = ToolDefinition(
+    name="search_schema",
+    description=(
+        "Search the database schema index for tables and columns matching keywords. "
+        "Returns matching table names and their columns. Use this to find relevant "
+        "tables before calling explore_table() or writing SQL. Supports fuzzy matching."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "keywords": {
+                "type": "string",
+                "description": (
+                    "Space-separated search terms to match against table and column names. "
+                    "Example: 'serial number asset' or 'customer order'."
+                ),
+            },
+        },
+        "required": ["keywords"],
+    },
+)
+
+
+# Exploration memory tools — agent notes what it discovers
+
+RECALL_EXPLORATIONS = ToolDefinition(
+    name="recall_explorations",
+    description=(
+        "Search your exploration memory for notes about tables, columns, relationships, "
+        "or query patterns you have previously discovered. Use this to check what you "
+        "already know before exploring from scratch."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "topic": {
+                "type": "string",
+                "description": (
+                    "What you want to recall. Can be a table name, column name, "
+                    "concept, or question pattern. Example: 'CIP trace snowflake' "
+                    "or 'PPIN_LOOKUP safety'."
+                ),
+            },
+            "note_types": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "Optional filter by note type: table_profile, column_relevance, "
+                    "relationship, query_path, schema_map, routing_outcome, "
+                    "safety_warning, negative_knowledge."
+                ),
+            },
+        },
+        "required": ["topic"],
+    },
+)
+
+NOTE_EXPLORATION = ToolDefinition(
+    name="note_exploration",
+    description=(
+        "Write a note to your persistent exploration memory. Notes survive across "
+        "conversations. Use this after discovering something useful (table profile, "
+        "column relevance, safety warning) so you remember it next time."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "subject": {
+                "type": "string",
+                "description": "Table name, schema, or topic this note is about.",
+            },
+            "observation": {
+                "type": "string",
+                "description": (
+                    "What you discovered. Be specific: include table names, column names, "
+                    "row counts, data types, gotchas. Write as if talking to your future self."
+                ),
+            },
+            "note_type": {
+                "type": "string",
+                "enum": [
+                    "table_profile", "column_relevance", "schema_map",
+                    "safety_warning", "negative_knowledge",
+                ],
+                "description": "Category of this note.",
+            },
+        },
+        "required": ["subject", "observation", "note_type"],
+    },
+)
+
+NOTE_RELATIONSHIP = ToolDefinition(
+    name="note_relationship",
+    description=(
+        "Record a discovered JOIN relationship between two tables. Use this when you "
+        "notice shared column names across tables or successfully execute a JOIN."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "from_table": {"type": "string", "description": "Source table name."},
+            "from_column": {"type": "string", "description": "Source column name."},
+            "to_table": {"type": "string", "description": "Target table name."},
+            "to_column": {"type": "string", "description": "Target column name."},
+            "notes": {
+                "type": "string",
+                "description": "Description of the relationship and when to use this join.",
+            },
+        },
+        "required": ["from_table", "from_column", "to_table", "to_column"],
+    },
+)
+
+NOTE_QUERY_PATH = ToolDefinition(
+    name="note_query_path",
+    description=(
+        "Save a multi-step query recipe that worked. Use this after solving a "
+        "question that required multiple steps (explore → intermediate query → final query). "
+        "Future similar questions will benefit from this saved recipe."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "question_pattern": {
+                "type": "string",
+                "description": "A short description of the question type this recipe solves.",
+            },
+            "steps": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Ordered list of steps to solve this type of question.",
+            },
+            "final_sql": {
+                "type": "string",
+                "description": "The final SQL query that answered the question.",
+            },
+        },
+        "required": ["question_pattern", "steps"],
+    },
+)
+
+# Exploration tools (registered alongside builtins when ExplorationMemory is available)
+EXPLORATION_TOOLS = [
+    RECALL_EXPLORATIONS,
+    NOTE_EXPLORATION,
+    NOTE_RELATIONSHIP,
+    NOTE_QUERY_PATH,
+]
 
 # All built-in tools
 BUILTIN_TOOLS = [
